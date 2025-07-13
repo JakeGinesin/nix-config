@@ -42,17 +42,15 @@
     services.logind.lidSwitchExternalPower = "ignore";
 
     age = {
-      secrets = {
-        zsh_remote = {
-          file = ../../secrets/zsh_remote.age;
-          owner = "synchronous";
-          mode = "0400";
-        };
-        tailscale-rq = {
-          file = ../../secrets/tailscale-rq.age;
-          owner = "synchronous";
-          mode = "0400";
-        };
+      secrets.zsh_remote = {
+        file = ../../secrets/zsh_remote.age;
+        owner = "synchronous";
+        mode = "0400";
+      };
+      tailscale-rq = {
+        file = ../../secrets/tailscale-rq.age;
+        owner = "synchronous";
+        mode = "0400";
       };
       secretsDir = "/home/synchronous/.agenix/agenix";
       secretsMountPoint = "/home/synchronous/.agenix/agenix.d";
