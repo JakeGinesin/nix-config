@@ -8,18 +8,26 @@
     ./hardware-configuration.nix
     ../../system/system.nix
     ../meta.nix
+    ../../extras/ssh.nix
   ];
 
   config = {
-    networking.hostName = "thonkpad"; # Define your hostname.
-    res = "1366x768";
+    networking.hostName = "server2"; # Define your hostname.
+    res = "2560x1440";
 
     home-manager = {
       useGlobalPkgs = true;
       useUserPackages = true;
-      backupFileExtension = "hm-backup";
+      backupFileExtension = "backup";
       users.synchronous.imports = [../../home/home.nix];
     };
+
+    # Bootloader.
+    # boot.loader.grub.enable = true;
+    # boot.loader.grub.device = "/dev/nvme0n1";
+    # boot.loader.grub.useOSProber = true;
+    # boot.loader.grub.version = 2;
+    # services.logind.lidSwitchExternalPower = "ignore";
 
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;

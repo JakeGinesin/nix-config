@@ -4,4 +4,6 @@ let
 in {
   "zsh_remote.age".publicKeys = [key];
   "tailscale-rq.age".publicKeys = [key];
+  "ssh-pub.age".publicKeys = [key];
+  "kube.age".publicKeys = [key];
 }

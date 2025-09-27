@@ -80,7 +80,7 @@ in {
       simple-mtpfs
       signal-desktop
       slack
-      nodejs_23
+      nodejs_24
       gnumake
       choose # better awk and cut
       grc
@@ -102,11 +102,24 @@ in {
       ldns
       cmatrix
       pipes-rs
-      gimp
+      # gimp (doens't werk)
       file
       feh
+      ncdu
+      clisp
+      libsForQt5.qt5.qttools
+      bc # for qdbus + bc for pomodoro script
+      # rocmPackages.llvm.clang-unwrapped
       # direnv
       # emacs # haha
+      ripgrep-all
+      element-desktop
+      rustup # for verus rip
+      python313Packages.ipython
+      sage
+      yq
+      semgrep
+      # texlive.combined.scheme-full
 
       # security
       aflplusplus
@@ -127,6 +140,8 @@ in {
       dhcpcd
       wireshark
       postman
+      nuclei
+      subfinder
     ]
     ++ (
       with lib; let

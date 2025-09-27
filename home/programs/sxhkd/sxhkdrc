@@ -68,7 +68,7 @@ super + {t,shift + t,s,a}
 
 # focus the node in the given direction
 super + {_,shift + }{j,k,i,l}
-	bspc node -{f,s} {west,south,north,east}
+	bspc node -{f,s} {west,south,north,east}.local
 
 # focus the node for the given path jump
 # super + {p,b,comma,period}
@@ -165,7 +165,10 @@ ctrl + super + {Left,Right}
     fast-shift {left,right}
 
 super + {shift} + {d}
-    pkill -f discord
+    pkill -f legcord
+
+super + {shift} + {h}
+    pkill -f slack
 
 ctrl + super + bracket{left,right}
     fast-shift {left,right}

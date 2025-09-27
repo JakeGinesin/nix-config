@@ -6,7 +6,7 @@
   imports = [
     # ./wm/bspwm.nix
     ./xserver/default.nix
-    ./services/services.nix
+    ./services/services-server.nix
     ./fonts/fonts.nix
     ./hardware/hardware.nix
     ./networking/default.nix
@@ -38,6 +38,25 @@
     enable = true;
     enableOnBoot = true;
     liveRestore = false;
+  };
+
+  virtualisation.docker.extraOptions = ''
+    --insecure-registry 100.125.181.75:5000
+  '';
+
+  # services.containerd.registryMirrors = {
+  # # Replace with your registry's address and port
+  # "100.125.181.75:5000" = {
+  # endpoint = ["http://100.125.181.75:5000"];
+  # };
+  # };
+
+  virtualisation.containerd.settings = {
+    plugins."io.containerd.grpc.v1.cri".registry.mirrors."100.125.181.75:5000" = {
+      endpoint = ["http://100.125.181.75:5000"];
+    };
+
+    plugins."io.containerd.grpc.v1.cri".registry.configs."100.125.181.75:5000".tls.insecure_skip_verify = true;
   };
 
   programs.nix-ld.enable = true;
@@ -104,10 +123,6 @@
     ];
   };
 
-  virtualisation.docker.extraOptions = ''
-    --insecure-registry 100.125.181.75:5000
-  '';
-
   # programs.direnv.enable = true;
 
   nix = {
@@ -127,12 +142,6 @@
       ];
     };
   };
-
-  boot.extraModulePackages = with config.boot.kernelPackages; [
-    rtl88xxau-aircrack
-  ];
-
-  boot.kernelModules = ["rtl8812au"];
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

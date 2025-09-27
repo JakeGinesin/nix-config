@@ -43,6 +43,29 @@
   grep = "/run/current-system/sw/bin/grep";
   awk = "/run/current-system/sw/bin/awk";
 
+  pctl = ''
+    [module/pomodoro]
+    type = custom/script
+    tail = true
+    interval = 5
+    format = <label>
+    exec = "sh /etc/profiles/per-user/synchronous/bin/pomodoro"
+    label-foreground = ${colors.foreground}
+    format-foreground = ${colors.theme}
+  '';
+
+  cmusctl = ''
+    [module/cmus]
+    type = custom/script
+    tail = true
+    format =♫  <label>
+    interval = 5
+    exec-if = "sh /etc/profiles/per-user/synchronous/bin/cmus-status 2> /dev/null | rg -v 'NO_MUSIC'"
+    exec = "sh /etc/profiles/per-user/synchronous/bin/cmus-status 2> /dev/null | rg -v 'NO_MUSIC'"
+    label-foreground = ${colors.foreground}
+    format-foreground = ${colors.theme}
+  '';
+
   # networkingDevice = builtins.exec "ip route | grep default | awk '{print $5}'";
   # networkingDevice = pkgs.runCommand "get-network-device" {} ''
   # ${ip} route | ${grep} default | ${awk} '{print $5}' > $out
@@ -109,11 +132,12 @@ in {
     enable = true;
     package = mypolybar;
     config = ./config.ini;
-    extraConfig = bctl + internets + mon + tctl;
+    extraConfig = bctl + internets + mon + tctl + pctl + cmusctl;
     # my savior: https://www.reddit.com/r/NixOS/comments/v8ikwq/polybar_doesnt_start_at_launch/
     script = ''
       # echo "none"
       polybar mybar 2> /dev/null & disown
+      # setsid polybar mybar > /dev/null 2> /dev/null &> /dev/null
     '';
   };
 

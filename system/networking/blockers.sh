@@ -4,6 +4,7 @@ set -euo pipefail
 blacklist=(
   "NUwave"
   "BostonPublicLibrary"
+  "CMU-SECURE"
 )
 
 should_block=false
@@ -52,5 +53,4 @@ for website in "${websites[@]}"; do
   /run/current-system/sw/bin/bash /etc/profiles/per-user/synchronous/bin/dnsblock-norestart "$op" "$website" 
 done
 
-systemctl restart dnsmasq
 systemctl restart dnsmasq

@@ -13,7 +13,7 @@ vim.g.vimtex_quickfix_mode = 0
 vim.g.vimtex_quickfix_enabled = 0
 
 -- Compiler backend.
-vim.g.vimtex_compiler_method = 'latexrun'
+vim.g.vimtex_compiler_method = 'latexmk'
 
 -- Set the local leader (default is "\"; here we change it to comma).
 vim.g.maplocalleader = ','

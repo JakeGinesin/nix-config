@@ -54,7 +54,9 @@ if grep --color error /tmp/nixos-switch.log; then
 fi
 
 # Get current generation metadata
-current=$(nixos-rebuild list-generations | grep current)
+# current=$(nixos-rebuild list-generations | grep current)
+# current=$(sudo nix-env --list-generations --profile /nix/var/nix/profiles/system | tail -n 1 | awk '{print $1, $2, $3}')
+current=$(nixos-rebuild list-generations --json | jq -r '.[1] | [.generation, .buildDate, .nixosVersion, .kernelVersion, (.current|tostring)] | @tsv' | awk '{print "generation", $1, $2}')
 
 # Commit all changes witih the generation metadata
 git --git-dir /home/synchronous/nix-cfg/.git add .
