@@ -77,147 +77,153 @@ in {
           display: none !important
         }
       '';
-      bookmarks = [
-        {
-          name = "Bar";
-          toolbar = true;
-          bookmarks = [
-            {
-              name = "nixos";
-              bookmarks = [
-                {
-                  name = "noogle";
-                  url = "https://noogle.dev/";
-                }
-                {
-                  name = "home manager options";
-                  url = "https://home-manager-options.extranix.com/";
-                }
-                {
-                  name = "nixpkgs";
-                  url = "https://search.nixos.org/packages";
-                }
-                {
-                  name = "dots";
-                  url = "https://github.com/JakeGinesin/nix-dots";
-                }
-                {
-                  name = "nix options";
-                  url = "https://search.nixos.org/options";
-                }
-                {
-                  name = "old packages";
-                  url = "https://lazamar.co.uk/nix-versions/";
-                }
-              ];
-            }
-            {
-              name = "cmu";
-              bookmarks = [
-                {
-                  name = "computing facilities";
-                  url = "https://computing.cs.cmu.edu/landing/student";
-                }
-                {
-                  name = "csd phd resources";
-                  url = "https://www.cs.cmu.edu/~csd-grad/";
-                }
-                {
-                  name = "general phd resources";
-                  url = "https://csd.cmu.edu/academics/doctoral-resources";
-                }
-                # {
-                # name = "cmu orders";
-                # url = "https://rams.srv.cs.cmu.edu/ords/";
-                # }
-                {
-                  name = "cmu sio";
-                  url = "https://s3.andrew.cmu.edu/sio";
-                }
-                {
-                  name = "husker";
-                  url = "https://www.husker.nu";
-                }
-                {
-                  name = "mit library experts";
-                  url = "https://libraries.mit.edu/experts/";
-                }
-                {
-                  name = "cmu canvas";
-                  url = "https://canvas.cmu.edu/";
-                }
-                {
-                  name = "cmu email";
-                  url = "https://email.cmu.edu";
-                }
-                {
-                  name = "grfp";
-                  url = "https://www.research.gov/grfp/Login.do"; # your tax dollars fund my phd loser. pay big sam up.
-                }
-                {
-                  name = "cmueats";
-                  url = "https://cmueats.com/";
-                }
-                {
-                  name = "cmucourses";
-                  url = "https://cmucourses.com/";
-                }
-              ];
-            }
-            {
-              name = "solvers";
-              bookmarks = [
-                {
-                  name = "GPT";
-                  url = "https://chatgpt.com"; # sam altman is a horrible person and i cannot wait for the day i can ditch this shit
-                }
-                {
-                  name = "claude";
-                  url = "https://claude.ai";
-                }
-                {
-                  name = "gemini";
-                  url = "https://gemini.google.com";
-                }
-              ];
-            }
-            {
-              name = "verus";
-              bookmarks = [
-                {
-                  name = "verus playground";
-                  url = "https://play.verus-lang.org/?version=stable&mode=basic&edition=2021";
-                }
-                {
-                  name = "verus docs";
-                  url = "https://verus-lang.github.io/verus/guide/verus_macro_intro.html";
-                }
-                {
-                  name = "verus zulip";
-                  url = "https://verus-lang.zulipchat.com/";
-                }
-                {
-                  name = "vstd docs";
-                  url = "https://verus-lang.github.io/verus/verusdoc/vstd/index.html";
-                }
-                {
-                  name = "core docs";
-                  url = "https://doc.rust-lang.org/1.88.0/core/index.html";
-                }
-              ];
-            }
-            {
-              name = "cal";
-              url = "https://calendar.google.com/";
-            }
-
-            {
-              name = "performance";
-              url = "about:processes";
-            }
-          ];
-        }
-      ];
+      bookmarks = {
+        force = true;
+        settings = [
+          {
+            name = "Bar";
+            toolbar = true;
+            bookmarks = [
+              {
+                name = "nixos";
+                bookmarks = [
+                  {
+                    name = "noogle";
+                    url = "https://noogle.dev/";
+                  }
+                  {
+                    name = "home manager options";
+                    url = "https://home-manager-options.extranix.com/";
+                  }
+                  {
+                    name = "nixpkgs";
+                    url = "https://search.nixos.org/packages";
+                  }
+                  {
+                    name = "dots";
+                    url = "https://github.com/JakeGinesin/nix-dots";
+                  }
+                  {
+                    name = "nix options";
+                    url = "https://search.nixos.org/options";
+                  }
+                  {
+                    name = "old packages";
+                    url = "https://lazamar.co.uk/nix-versions/";
+                  }
+                ];
+              }
+              {
+                name = "cmu";
+                bookmarks = [
+                  {
+                    name = "computing facilities";
+                    url = "https://computing.cs.cmu.edu/landing/student";
+                  }
+                  {
+                    name = "csd phd resources";
+                    url = "https://www.cs.cmu.edu/~csd-grad/";
+                  }
+                  {
+                    name = "general phd resources";
+                    url = "https://csd.cmu.edu/academics/doctoral-resources";
+                  }
+                  # {
+                  # name = "cmu orders";
+                  # url = "https://rams.srv.cs.cmu.edu/ords/";
+                  # }
+                  {
+                    name = "cmu sio";
+                    url = "https://s3.andrew.cmu.edu/sio";
+                  }
+                  {
+                    name = "husker";
+                    url = "https://www.husker.nu";
+                  }
+                  {
+                    name = "mit library experts";
+                    url = "https://libraries.mit.edu/experts/";
+                  }
+                  {
+                    name = "cmu canvas";
+                    url = "https://canvas.cmu.edu/";
+                  }
+                  {
+                    name = "cmu email";
+                    url = "https://email.cmu.edu";
+                  }
+                  {
+                    name = "grfp";
+                    url = "https://www.research.gov/grfp/Login.do"; # your tax dollars fund my phd loser. pay big sam up.
+                  }
+                  {
+                    name = "cmueats";
+                    url = "https://cmueats.com/";
+                  }
+                  {
+                    name = "cmucourses";
+                    url = "https://cmucourses.com/";
+                  }
+                ];
+              }
+              {
+                name = "solvers";
+                bookmarks = [
+                  {
+                    name = "GPT";
+                    url = "https://chatgpt.com"; # sam altman is a horrible person and i cannot wait for the day i can ditch this shit
+                  }
+                  {
+                    name = "claude";
+                    url = "https://claude.ai";
+                  }
+                  {
+                    name = "gemini";
+                    url = "https://gemini.google.com";
+                  }
+                ];
+              }
+              {
+                name = "verus";
+                bookmarks = [
+                  {
+                    name = "verus playground";
+                    url = "https://play.verus-lang.org/?version=stable&mode=basic&edition=2021";
+                  }
+                  {
+                    name = "verus docs";
+                    url = "https://verus-lang.github.io/verus/guide/verus_macro_intro.html";
+                  }
+                  {
+                    name = "verus zulip";
+                    url = "https://verus-lang.zulipchat.com/#feed";
+                  }
+                  {
+                    name = "vstd docs";
+                    url = "https://verus-lang.github.io/verus/verusdoc/vstd/index.html";
+                  }
+                  {
+                    name = "core docs";
+                    url = "https://doc.rust-lang.org/1.88.0/core/index.html";
+                  }
+                  {
+                    name = "verus github";
+                    url = "https://github.com/verus-lang/verus";
+                  }
+                ];
+              }
+              {
+                name = "cal";
+                url = "https://calendar.google.com/";
+              }
+              {
+                name = "performance";
+                url = "about:processes";
+              }
+            ];
+          }
+        ];
+      };
       settings = {
         ### This is all aesthetic stuff
         # for tiling window managers expands to the size of the window

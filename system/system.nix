@@ -48,6 +48,11 @@
   services.printing.enable = true;
   hardware.bluetooth.enable = true;
   programs.dconf.enable = true;
+  services.pcscd.enable = true;
+  programs.gnupg.agent = {
+    enable = true;
+    enableSSHSupport = true;
+  };
 
   xdg.mime.defaultApplications = {
     "application/pdf" = "firefox.desktop";

@@ -6,4 +6,6 @@ in {
   "tailscale-rq.age".publicKeys = [key];
   "ssh-pub.age".publicKeys = [key];
   "kube.age".publicKeys = [key];
+  "ip-master-k3s.age".publicKeys = [key];
+  "ip-cmu.age".publicKeys = [key];
 }

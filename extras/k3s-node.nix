@@ -28,6 +28,13 @@
       "net.bridge.bridge-nf-call-ip6tables" = 1;
     };
   };
+
+  boot.kernelModules = ["rbd" "nbd" "ceph"];
+
+  # Make Ceph user-space tools available on the system
+  environment.systemPackages = with pkgs; [
+  ];
+
   networking.firewall.enable = false;
   # networking.firewall.allowedTCPPorts = [
   # 6443 # k3s: required so that pods can reach the API server (running on port 6443 by default)
@@ -43,5 +50,13 @@
     # token = "jakeginesin12345678910";
     tokenFile = config.age.secrets.kube.path;
     serverAddr = "https://172.24.233.22:6443";
+    extraFlags = toString [
+      # "--bind-address=0.0.0.0" # API server listens on all interfaces
+      # "--advertise-address=100.125.181.75" # Advertise this IP to cluster members
+      # "--node-ip=100.125.181.75" # Primary IP for this node
+      # "--node-external-ip=100.125.181.75" # External IP for services
+      # "--tls-san=100.125.181.75" # Add IP to TLS certificate
+      "--kubelet-arg=root-dir=/var/lib/kubelet"
+    ];
   };
 }

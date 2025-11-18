@@ -17,6 +17,10 @@
 
     nixpkgs-clisp.url = "github:NixOS/nixpkgs/da320e5472f021b96a883f71fc525ca0e4815273";
 
+    # pin only signal versions jake likes. recall, you must back up .config/Signal when changing this
+    # this ver includes triple ratchet
+    nixpkgs-signal.url = "github:NixOS/nixpkgs/cf3f5c4def3c7b5f1fc012b3d839575dbe552d43";
+
     verus-flake.url = "github:JakeGinesin/verus-flake";
   };
   outputs = {
@@ -26,12 +30,13 @@
     agenix,
     emacs-overlay,
     nixpkgs-clisp,
+    nixpkgs-signal,
     verus-flake,
   } @ inputs: let
     system = "x86_64-linux";
 
     # hostnames
-    hosts = ["thonkpad" "rq" "yoga" "server1" "server2" "server3"];
+    hosts = ["thonkpad" "rq" "yoga" "server1" "server2" "server3" "store"];
 
     baseModule = {lib, ...}: {
       imports = [
@@ -43,6 +48,7 @@
         emacs-overlay.overlay
         (final: _prev: {
           clisp = nixpkgs-clisp.legacyPackages.${system}.clisp;
+          signal-desktop = nixpkgs-signal.legacyPackages.${system}.signal-desktop;
         })
       ];
       environment.systemPackages = [

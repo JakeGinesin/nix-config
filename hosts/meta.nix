@@ -35,6 +35,16 @@
           owner = "synchronous";
           mode = "0400";
         };
+        ip-master-k3s = {
+          file = ../secrets/ip-master-k3s.age;
+          owner = "synchronous";
+          mode = "0400";
+        };
+        ip-cmu = {
+          file = ../secrets/ip-cmu.age;
+          owner = "synchronous";
+          mode = "0400";
+        };
       };
       secretsDir = "/home/synchronous/.agenix/agenix";
       secretsMountPoint = "/home/synchronous/.agenix/agenix.d";

@@ -73,6 +73,7 @@ in {
     polybar
     sxhkd
     bspwm
+    yq
     # linuxKernel.packages.linux_zen.rtl8812au
     # librewolf
   ];

@@ -53,7 +53,7 @@ in {
 
   home.sessionVariables = {
     EDITOR = "nvim";
-    SHELL = "zsh";
+    SHELL = "/etc/profiles/per-user/synchronous/bin/zsh"; # just zsh no longer works?
     HOME = "/home/synchronous";
     # XDG_CACHE_HOME = "$HOME/.cache";
     DBUS_SESSION_BUS_ADDRESS = "unix:path=$XDG_RUNTIME_DIR/bus";
@@ -119,6 +119,10 @@ in {
       sage
       yq
       semgrep
+      tectonic
+      electrum
+      feather
+      gnupg
       # texlive.combined.scheme-full
 
       # security
@@ -142,6 +146,7 @@ in {
       postman
       nuclei
       subfinder
+      hcxtools
     ]
     ++ (
       with lib; let

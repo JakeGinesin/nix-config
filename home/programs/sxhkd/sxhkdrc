@@ -209,10 +209,12 @@ super + {ctrl} + {k}
 
 # search for current semester area, then open terminal wherever it is
 super + {ctrl} + {c} 
-  find /home/synchronous/current-semester -follow -maxdepth 1 | cut -c36- | sed '/^[[:space:]]*$/d' | rofi -dmenu | read csem && alacritty --working-directory "/home/synchronous/current-semester/$csem";
+  cs-browser
+  # find /home/synchronous/current-semester -follow -maxdepth 1 | cut -c36- | sed '/^[[:space:]]*$/d' | rofi -dmenu | read csem && alacritty --working-directory "/home/synchronous/current-semester/$csem";
 
 super + {alt} + {c}
-  find /home/synchronous/current-semester -follow -maxdepth 1 | cut -c36- | sed '/^[[:space:]]*$/d' | rofi -dmenu | read rsem; yq ".url" "/home/synchronous/current-semester/$rsem/info.yaml" | xargs firefox
+  cs-firefox
+  # find /home/synchronous/current-semester -follow -maxdepth 1 | cut -c36- | sed '/^[[:space:]]*$/d' | rofi -dmenu | read rsem; yq ".url" "/home/synchronous/current-semester/$rsem/info.yaml" | xargs firefox
 
 # sh /home/synchronous/.scripts/vimwiki/open_todo.sh
 super + {p}

@@ -1,0 +1,1 @@
+find /home/synchronous/current-semester -follow -maxdepth 1 | cut -c36- | sed '/^[[:space:]]*$/d' | rofi -dmenu | read csem && alacritty --working-directory "/home/synchronous/current-semester/$csem";

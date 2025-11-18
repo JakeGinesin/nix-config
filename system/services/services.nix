@@ -9,5 +9,6 @@
     ./syncthing/default.nix
     # ./resolved/default.nix (not enabled, in favor of dnsmasq)
     ./dnsmasq/default.nix
+    ./printing.nix
   ];
 }

@@ -14,6 +14,9 @@ if [[ $OP == on ]]; then
     tee "$FILE" >/dev/null <<EOF
 address=/${DOMAIN}/0.0.0.0
 address=/${DOMAIN}/::
+address=/www.${DOMAIN}/0.0.0.0
+address=/www.${DOMAIN}/::
+
 EOF
 else
     rm -f "$FILE"
