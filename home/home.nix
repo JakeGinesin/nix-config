@@ -125,6 +125,7 @@ in {
       gnupg
       texpresso
       python313Packages.pygments
+      android-tools
       # texlive.combined.scheme-full
 
       # security
