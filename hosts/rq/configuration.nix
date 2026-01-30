@@ -22,6 +22,7 @@
     };
 
     services.udev.packages = [pkgs.android-udev-rules];
+    services.gvfs.enable = true;
 
     # Ensure your user is in the adbusers group
     users.users.synchronous.extraGroups = ["adbusers"];
