@@ -26,6 +26,11 @@ vim.g.vimtex_compiler_tectonic = {
     },
 }
 
+vim.g.vimtex_quickfix_ignore_filters = {
+    'inputenc package ignored',
+    'Package transparent Warning',
+}
+
 -- Set the local leader (default is "\"; here we change it to comma).
 vim.g.maplocalleader = ','
 
