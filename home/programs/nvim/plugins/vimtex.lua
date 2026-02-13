@@ -26,9 +26,27 @@ vim.g.vimtex_compiler_tectonic = {
     },
 }
 
+-- vim.g.vimtex_quickfix_ignore_filters = {
+    -- 'inputenc package ignored',
+    -- 'Package transparent Warning',
+    -- 'Overfull \\\\hbox',
+-- }
+
 vim.g.vimtex_quickfix_ignore_filters = {
     'inputenc package ignored',
     'Package transparent Warning',
+    'Package hyperref Warning',
+    'Token not allowed in a PDF string',
+    'removing math shift',
+    'removing superscript',
+    'Underfull',
+    'Overfull',
+    'specifier changed to',
+    'You have requested',
+    'Missing number, treated as zero',
+    'There were undefined references',
+    'Citation .* undefined', 
+    'Double space found',
 }
 
 -- Set the local leader (default is "\"; here we change it to comma).
