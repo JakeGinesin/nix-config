@@ -26,5 +26,6 @@
     ./nf/default.nix
     ./beets/default.nix
     ./emacs/default.nix
+    ./nnn/default.nix
   ];
 }
