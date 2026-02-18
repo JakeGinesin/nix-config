@@ -14,5 +14,11 @@
     NNN_TERMINAL = "alacritty";
   };
 
-  programs.nnn.plugins.src = ./nnn-plugins;
+  home.activation.nnnPlugins = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    mkdir -p $HOME/.config/nnn/plugins
+    cp --no-preserve=mode ${./preview-tui} $HOME/.config/nnn/plugins/preview-tui
+    chmod +x $HOME/.config/nnn/plugins/preview-tui
+  '';
+
+  # programs.nnn.plugins.src = ./nnn-plugins;
 }
