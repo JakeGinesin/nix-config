@@ -14,5 +14,5 @@
     NNN_TERMINAL = "alacritty";
   };
 
-  programs.nnn.plugins.src = ./preview-tui;
+  programs.nnn.plugins.src = ./nnn-plugins;
 }
