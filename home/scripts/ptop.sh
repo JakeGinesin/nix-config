@@ -1,0 +1,1 @@
+ps -eo pid=,%cpu=,comm= --sort=-%cpu | awk '$3 != "ps"' | head -n 5 | while read p c n; do printf "\n\033[1;31m[ %s%% CPU ]\033[0m \033[1m%s\033[0m (PID: %s)\n" "$c" "$n" "$p"; pstree -g 3 -w -p "$p" | sed -E 's#/nix/store/[a-z0-9]{32}-##g; s#/etc/profiles/per-user/synchronous/bin/##g; s#/run/current-system/systemd/lib/##g' | cut -c 1-$COLUMNS; done
