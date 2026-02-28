@@ -126,6 +126,7 @@ in {
       texpresso
       python313Packages.pygments
       android-tools
+      pstree
       # texlive.combined.scheme-full
 
       # security
