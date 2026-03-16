@@ -25,7 +25,7 @@
     ./keepassxc/default.nix
     ./nf/default.nix
     ./beets/default.nix
-    ./emacs/default.nix
+    # ./emacs/default.nix
     ./nnn/default.nix
   ];
 }
