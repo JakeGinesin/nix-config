@@ -224,6 +224,8 @@ alias scripts="cd /home/synchronous/nix-cfg/home/scripts"
 alias bookmarks="vim -c '80' /home/synchronous/nix-cfg/home/programs/firefox/default.nix"
 alias startpage="vim /home/synchronous/nix-cfg/home/programs/firefox/startpage/index.html"
 
+alias verus-tcb=" rg 'assume\(false\)|external_body' | rg -v '//.*(assume\(false\)|external_body)'"
+
 stack() {
   find . -type f -exec echo -e "\n--- {} ---\n" \; -exec cat {} \;
 }
