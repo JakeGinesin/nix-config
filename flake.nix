@@ -19,7 +19,7 @@
 
     # pin only signal versions jake likes. recall, you must back up .config/Signal when changing this
     # this version includes: triple ratchet iirc
-    nixpkgs-signal.url = "github:NixOS/nixpkgs/9f0c42f8bc7151b8e7e5840fb3bd454ad850d8c5";
+    nixpkgs-signal.url = "github:NixOS/nixpkgs/b40629efe5d6ec48dd1efba650c797ddbd39ace0";
 
     verus-flake.url = "github:JakeGinesin/verus-flake";
   };
