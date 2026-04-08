@@ -73,7 +73,7 @@
     tail = true
     format =󱛟  <label>
     interval = 100
-    exec = "sh sh /etc/profiles/per-user/synchronous/bin/hdd-use 2> /dev/null"
+    exec = "sh /etc/profiles/per-user/synchronous/bin/hdd-use 2> /dev/null"
     label-foreground = ${colors.foreground}
     format-foreground = ${colors.theme}
   '';
@@ -82,7 +82,7 @@
     [module/nix-store]
     type = custom/script
     tail = true
-    format =❇  <label>
+    format =  <label>
     interval = 100
     exec = "sh /etc/profiles/per-user/synchronous/bin/nix-store-usage 2> /dev/null"
     label-foreground = ${colors.foreground}
