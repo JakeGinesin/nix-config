@@ -61,6 +61,7 @@ in {
 
     # emacsPackages.agda-input
     agda
+    # (agda.withPackages (p: [p.standard-library]))
     emacsPackages.agda2-mode
     emacsPackages.agda-editor-tactics
 

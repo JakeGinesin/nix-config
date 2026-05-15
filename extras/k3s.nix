@@ -29,6 +29,8 @@
     };
   };
 
+  boot.kernelModules = ["rbd" "nbd"];
+
   environment.systemPackages = with pkgs; [
     kubernetes-helm
   ];

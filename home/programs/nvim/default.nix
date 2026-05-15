@@ -41,10 +41,11 @@
       vim-airline-themes
       plenary-nvim
       nvim-web-devicons
-      {
-        plugin = smear-cursor-nvim;
-        config = toLuaFile ./plugins/smear.lua;
-      }
+      texpresso-vim
+      # {
+      # plugin = smear-cursor-nvim;
+      # config = toLuaFile ./plugins/smear.lua;
+      # }
       # {
       # plugin = neovide;
       # config = toLuaFile ./plugins/neovide.lua;
@@ -86,6 +87,10 @@
       #   plugin = vim-airline;
       #   config = toLuaFile ./plugins/airline.lua;
       # }
+      {
+        plugin = markdown-preview-nvim;
+        config = toLuaFile ./plugins/markdown-preview-nvim.lua;
+      }
       {
         plugin = barbar-nvim;
         config = toLuaFile ./plugins/barbar.lua;

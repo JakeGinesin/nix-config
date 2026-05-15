@@ -210,6 +210,10 @@ in {
                     name = "verus github";
                     url = "https://github.com/verus-lang/verus";
                   }
+                  {
+                    name = "secure foundations";
+                    url = "https://github.com/secure-foundations";
+                  }
                 ];
               }
               {

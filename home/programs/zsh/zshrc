@@ -220,9 +220,21 @@ alias dnsblock-add="nvim /home/synchronous/nix-cfg/system/networking/blockers.sh
 alias focus-wifi="nvim /home/synchronous/nix-cfg/system/networking/blockers.sh"
 alias verus-dir="cd /home/synchronous/code/verus"
 alias cure="cd /home/synchronous/code/cure53"
+alias scripts="cd /home/synchronous/nix-cfg/home/scripts"
+alias bookmarks="vim -c '80' /home/synchronous/nix-cfg/home/programs/firefox/default.nix"
+alias startpage="vim /home/synchronous/nix-cfg/home/programs/firefox/startpage/index.html"
+
+alias verus-tcb=" rg 'assume\(false\)|external_body' | rg -v '//.*(assume\(false\)|external_body)'"
 
 stack() {
   find . -type f -exec echo -e "\n--- {} ---\n" \; -exec cat {} \;
+}
+
+stack-fast() {
+    rg -l . | while read -r file; do 
+        echo -e "\n--- $file ---\n"
+        cat "$file"
+    done
 }
 
 stack-b() {

@@ -165,6 +165,31 @@ vim.api.nvim_create_autocmd("FileType", {
   command = "setlocal wrap"
 })
 
+vim.api.nvim_create_augroup("vimrc", { clear = true })
+
+-- vim.api.nvim_create_autocmd("FileType", {
+    -- desc = "texpresso compile",
+    -- group = "vimrc",
+    -- pattern = "tex",
+    -- callback = function(args)
+        -- -- start server on first BufWrite
+        -- vim.api.nvim_create_autocmd("BufWritePost", {
+            -- group = vim.api.nvim_create_augroup(
+                -- string.format("latex<buffer=%d>", args.buf),
+                -- { clear = true }
+            -- ),
+            -- buffer = args.buf,
+            -- callback = function()
+                -- if not vim.b.latex_started then
+                    -- vim.cmd "TeXpresso %"
+                    -- vim.b.latex_started = true
+                -- end
+                -- -- vim.cmd "VimtexView"
+            -- end,
+        -- })
+    -- end,
+-- })
+
 -- idk why i need to define it here bro
 -- local builtin = require('telescope.builtin')
 -- vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = 'Telescope find files' })

@@ -80,6 +80,8 @@
     #media-session.enable = true;
   };
 
+  nix.settings.trusted-users = ["synchronous" "root"];
+
   security.sudo = {
     # me ne frego. i dare you to privilege escalate me
     enable = true;

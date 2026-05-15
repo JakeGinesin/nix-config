@@ -123,6 +123,10 @@ in {
       electrum
       feather
       gnupg
+      texpresso
+      python313Packages.pygments
+      android-tools
+      pstree
       # texlive.combined.scheme-full
 
       # security
@@ -147,6 +151,8 @@ in {
       nuclei
       subfinder
       hcxtools
+      binwalk
+      lz4
     ]
     ++ (
       with lib; let

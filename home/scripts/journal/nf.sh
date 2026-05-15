@@ -44,6 +44,13 @@ open_daily() {
     -c "lua vim.g.goyo_if = 1" &!
 }
 
+open_idk() {
+  alacritty -t "idk.md" -e nvim "$main/rest/idk.md" \
+    -c "Goyo | set wrap | set path+=$main_dir" \
+    -c "execute 'normal G'" \
+    -c "lua vim.g.goyo_if = 1" &!
+}
+
 open_todo() {
   alacritty -t "todo.md" -e nvim "$main/todo.md" \
     -c "execute 'lua vim.g.goyo_if = 1' | set wrap | Goyo | set path+=$main_dir" &!
@@ -152,14 +159,24 @@ search_by_title() {
   fi
 }
 
+open_misc() {
+  tf=$(mktemp --suffix=.md)
+  # sh -c keeps window open for nvim, then deletes file immediately on exit
+  alacritty -t "scratch" -e sh -c "nvim '$tf' \
+    -c 'execute \"lua vim.g.goyo_if = 1\" | Goyo | set wrap | autocmd BufEnter * let b:coc_suggest_disable=1'; \
+    rm '$tf'" &!
+}
+
 run_command() {
   case $1 in
     "search") search ;;
     "daily") open_daily ;;
     "todo") open_todo ;;
+    "idk") open_idk ;;
     "find") notes_find ;;
     "tags") search_by_tags ;;
     "title") search_by_title ;;
+    "misc") open_misc ;;
     *)
   esac
 }

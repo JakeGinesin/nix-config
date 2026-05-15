@@ -171,6 +171,155 @@ ls.add_snippets("tex", {
   }))
 })
 
+ls.add_snippets("tex", {
+  s("template-report", fmta([[
+\documentclass[10pt]{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[margin=1in]{geometry}
+\usepackage[dvipsnames]{xcolor}	
+\usepackage{url}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm} 
+\usepackage{fullpage}
+\usepackage{listings}
+\usepackage[utf8]{inputenc}
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage[linguistics]{forest}
+\usepackage{tikz}
+\usepackage{float}
+
+\usepackage[minted,skins]{tcolorbox} % 'skins' needed for shadows
+
+% Define a new command \rustshadowfile that replaces \rustfile
+\newtcbinputlisting{\rustshadowfile}[2][]{%
+  listing engine=minted,
+  minted language=rust,
+  minted options={linenos, numbersep=5pt, fontsize=\footnotesize, baselinestretch=1.05},
+  listing file={#2},       % The file to read
+  enhanced,                % Enable skins for shadows
+  drop shadow,             % Add the shadow
+  colback=white,           % Background color
+  colframe=black!70,       % Border color
+  boxrule=0.5pt,           % Border width
+  arc=2pt,                 % Rounded corners (optional)
+  listing only,            % Display code only (no title bar inside box)
+  #1                       % Pass extra options like labels
+}
+
+\newtcblisting{rustcode}[1][]{
+  listing engine=minted,
+  minted language=rust,
+  minted options={linenos, numbersep=5pt, fontsize=\footnotesize, baselinestretch=1.05},
+  enhanced,
+  drop shadow,      % Adds the shadow
+  colback=white,    % Background color
+  colframe=black!70,% Border color
+  boxrule=0.5pt,    % Border width
+  arc=2pt,          % Rounded corners
+  listing only,     % Hides the internal tcolorbox title bar
+  #1                % Allows passing extra options
+}
+
+% \usepackage{enumitem}
+% \usepackage{euler}
+% \usepackage{libertine}
+
+\usepackage{import}
+\usepackage{pdfpages}
+\usepackage{transparent}
+
+\newtheoremstyle{definitionstyle}
+{}
+{}
+{\normalfont}
+{}
+{\bfseries}
+{:}
+{0.5em}
+{}
+
+\theoremstyle{definitionstyle}
+\newtheorem{definition}{Definition}[section]
+
+\newtheorem{all}{Theorem}[section]
+\newtheorem{corollary}[all]{Corollary}
+\newtheorem{lemma}[all]{Lemma}
+\newtheorem{exercise}[all]{Exercise}
+\newtheorem{proposition}[all]{Proposition}
+\newtheorem{example}[all]{Example}
+\newtheorem{theorem}{Theorem}
+
+\newcommand{\namedcomment}[3]{{\sf \scriptsize \color{#2} #1: #3}}
+\newcommand{\jake}[1]{\namedcomment{jake}{red}{#1}}
+\title{<>}
+\author{Jake Ginesin \and <>}
+\date{December 5th, 1999}
+
+\begin{document}
+\maketitle
+
+\end{document}
+  ]], {i(1), i(0)}, {
+    indent_string = ""
+  }))
+})
+
+
+ls.add_snippets("tex", {
+  s("beamer", fmta([[
+\documentclass{beamer}
+\usetheme{metropolis}           % Use metropolis theme
+\title{<>}
+\date{\today}
+\author{Jacob Ginesin}
+\institute{<>}
+\begin{document}
+  \maketitle
+  \section{First Section}
+  \begin{frame}{First Frame}
+    Hello, world!
+  \end{frame}
+\end{document}
+
+  ]], {i(1), i(0)}, {
+    indent_string = ""
+  }))
+})
+
+ls.add_snippets("tex", {
+  s("beamer", fmta([[
+\documentclass{beamer}
+\usetheme{metropolis}           % Use metropolis theme
+\title{<>}
+\date{\today}
+\author{Jacob Ginesin}
+\institute{<>}
+\begin{document}
+  \maketitle
+  \section{First Section}
+  \begin{frame}{First Frame}
+    Hello, world!
+  \end{frame}
+\end{document}
+
+  ]], {i(1), i(0)}, {
+    indent_string = ""
+  }))
+})
+
+ls.add_snippets("tex", {
+  s("bib", fmta([[
+\bibliographystyle{plain} 
+\bibliography{<>}
+  ]], {i(0)}, {
+    indent_string = ""
+  }))
+})
+
+
 -- ----
 
 
@@ -459,6 +608,19 @@ ls.add_snippets("tex", {
       { }
     ),
     {condition = in_mathzone}  
+  ),
+
+  s({trig = "rustcode"},
+    fmta(
+      [[
+  \begin{listing}[H]
+  \begin{rustcode}
+  <>
+  \end{rustcode}
+  \end{listing}
+      ]],
+      { i(1) }
+    )
   ),
 
   s({

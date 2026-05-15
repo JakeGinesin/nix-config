@@ -42,6 +42,7 @@
   ip = "/run/current-system/sw/bin/ip";
   grep = "/run/current-system/sw/bin/grep";
   awk = "/run/current-system/sw/bin/awk";
+  df = "/run/current-system/sw/bin/df";
 
   pctl = ''
     [module/pomodoro]
@@ -59,9 +60,31 @@
     type = custom/script
     tail = true
     format =♫  <label>
-    interval = 5
+    interval = 6
     exec-if = "sh /etc/profiles/per-user/synchronous/bin/cmus-status 2> /dev/null | rg -v 'NO_MUSIC'"
     exec = "sh /etc/profiles/per-user/synchronous/bin/cmus-status 2> /dev/null | rg -v 'NO_MUSIC'"
+    label-foreground = ${colors.foreground}
+    format-foreground = ${colors.theme}
+  '';
+
+  hddstorectl = ''
+    [module/hdd-store]
+    type = custom/script
+    tail = true
+    format =󱛟  <label>
+    interval = 100
+    exec = "sh /etc/profiles/per-user/synchronous/bin/hdd-use 2> /dev/null"
+    label-foreground = ${colors.foreground}
+    format-foreground = ${colors.theme}
+  '';
+
+  nixstorectl = ''
+    [module/nix-store]
+    type = custom/script
+    tail = true
+    format =  <label>
+    interval = 100
+    exec = "sh /etc/profiles/per-user/synchronous/bin/nix-store-usage 2> /dev/null"
     label-foreground = ${colors.foreground}
     format-foreground = ${colors.theme}
   '';
@@ -132,7 +155,7 @@ in {
     enable = true;
     package = mypolybar;
     config = ./config.ini;
-    extraConfig = bctl + internets + mon + tctl + pctl + cmusctl;
+    extraConfig = bctl + internets + mon + tctl + pctl + cmusctl + nixstorectl + hddstorectl;
     # my savior: https://www.reddit.com/r/NixOS/comments/v8ikwq/polybar_doesnt_start_at_launch/
     script = ''
       # echo "none"
