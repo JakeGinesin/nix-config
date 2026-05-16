@@ -77,6 +77,26 @@ in {
           display: none !important
         }
       '';
+      search = {
+        force = true;
+        default = "Wikipedia (en)";
+        engines = {
+          "Wikipedia (en)" = {
+            urls = [
+              {
+                template = "https://en.wikipedia.org/wiki/Special:Search";
+                params = [
+                  {
+                    name = "search";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+            ];
+            definedAliases = ["@w"];
+          };
+        };
+      };
       bookmarks = {
         force = true;
         settings = [
