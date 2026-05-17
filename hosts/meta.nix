@@ -39,6 +39,7 @@
       type = lib.types.attrs;
       default = {
         ips = import ../secrets/eval/ips.nix;
+        urls = import ../secrets/eval/urls.nix;
       };
     };
   };

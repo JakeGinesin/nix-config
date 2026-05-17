@@ -237,6 +237,15 @@ in {
                 ];
               }
               {
+                name = "cure";
+                bookmarks = [
+                  {
+                    name = "schedule";
+                    url = "${osConfig.secrets.eval.urls.cure-spreadsheet}";
+                  }
+                ];
+              }
+              {
                 name = "cal";
                 url = "https://calendar.google.com/";
               }
