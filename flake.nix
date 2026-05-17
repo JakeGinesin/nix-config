@@ -36,7 +36,11 @@
     system = "x86_64-linux";
 
     # hostnames
-    hosts = ["thonkpad" "rq" "yoga" "server1" "server2" "server3" "store"];
+    # hosts = ["thonkpad" "rq" "yoga" "server1" "server2" "server3" "store"];
+
+    hosts = builtins.attrNames (
+      nixpkgs.lib.filterAttrs (_: t: t == "directory") (builtins.readDir ./hosts)
+    );
 
     baseModule = {lib, ...}: {
       imports = [
@@ -58,15 +62,20 @@
       ];
     };
 
-    mkHost = name: {
-      name = name;
+    mkHost = name: let
+      rolePath = ./hosts/${name}/role.nix;
+      role = if builtins.pathExists rolePath then import rolePath else "driver-main";
+    in {
+      inherit name;
       value = nixpkgs.lib.nixosSystem {
-        modules = [
-          baseModule
-          ./hosts/${name}/configuration.nix
-        ];
+        specialArgs = {
+          inherit role;
+          isServer = role == "server-master" || role == "server-worker";
+        };
+        modules = [baseModule ./hosts/${name}/configuration.nix];
       };
     };
+
   in {
     nixosConfigurations = builtins.listToAttrs (map mkHost hosts);
   };

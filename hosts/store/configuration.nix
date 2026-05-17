@@ -6,7 +6,7 @@
 }: {
   imports = [
     ./hardware-configuration.nix
-    ../../system/system-server.nix
+    ../../system/system.nix
     ../meta.nix
     ../../extras/ssh.nix
     ../../extras/k3s-node.nix
@@ -27,7 +27,6 @@
     #boot.loader.grub.enable = true;
     boot.loader.grub.device = "/dev/sda";
     boot.loader.grub.useOSProber = true;
-    boot.loader.grub.version = 2;
     # services.logind.lidSwitchExternalPower = "ignore";
 
     boot.loader.systemd-boot.enable = false;

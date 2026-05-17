@@ -79,9 +79,9 @@ in {
       '';
       search = {
         force = true;
-        default = "Wikipedia (en)";
+        default = "wikipedia";
         engines = {
-          "Wikipedia (en)" = {
+          "wikipedia" = {
             urls = [
               {
                 template = "https://en.wikipedia.org/wiki/Special:Search";

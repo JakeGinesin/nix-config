@@ -37,18 +37,18 @@
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
 
-    # zsh sheeee
-    initExtraFirst = ''
-      [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-    '';
-
     # recall agenix secrets cannot be used at eval time, so we must do this trash
     # like what the fuck? I spent 4 hours figuring this out. will i ever reach nix nirvana?
-    initExtra = ''
-      ${builtins.readFile ./zshrc}
-      if [ -f "${osConfig.age.secrets.zsh_remote.path}" ]; then
-        source "${osConfig.age.secrets.zsh_remote.path}"
-      fi
-    '';
+    initContent = lib.mkMerge [
+      (lib.mkBefore ''
+        [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+      '')
+      ''
+        ${builtins.readFile ./zshrc}
+        if [ -f "${osConfig.age.secrets.zsh_remote.path}" ]; then
+          source "${osConfig.age.secrets.zsh_remote.path}"
+        fi
+      ''
+    ];
   };
 }

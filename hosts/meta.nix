@@ -10,6 +10,31 @@
       default = "1920x1080";
       description = "screen resolution";
     };
+
+    driver-main = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "primary driver machine (full desktop)";
+    };
+
+    driver-secondary = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "secondary driver machine (lighter desktop)";
+    };
+
+    server-master = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "k3s control-plane node";
+    };
+
+    server-worker = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "k3s worker node";
+    };
+    
   };
 
   config = {

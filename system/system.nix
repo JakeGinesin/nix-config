@@ -1,6 +1,8 @@
 {
   config,
   pkgs,
+  lib,
+  isServer,
   ...
 }: {
   imports = [
@@ -65,7 +67,7 @@
     "x-scheme-handler/unknown" = "firefox.desktop";
   };
 
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -113,7 +115,14 @@
 
   virtualisation.docker.extraOptions = ''
     --insecure-registry 100.125.181.75:5000
-  '';
+    '';
+
+  virtualisation.containerd.settings = lib.mkIf isServer {
+    plugins."io.containerd.grpc.v1.cri".registry.mirrors."100.125.181.75:5000" = {
+      endpoint = ["http://100.125.181.75:5000"];
+    };
+    plugins."io.containerd.grpc.v1.cri".registry.configs."100.125.181.75:5000".tls.insecure_skip_verify = true;
+  };
 
   # programs.direnv.enable = true;
 
@@ -135,11 +144,8 @@
     };
   };
 
-  boot.extraModulePackages = with config.boot.kernelPackages; [
-    rtl88xxau-aircrack
-  ];
-
-  boot.kernelModules = ["rtl8812au"];
+  boot.extraModulePackages = lib.mkIf (!isServer) (with config.boot.kernelPackages; [rtl88xxau-aircrack]);
+  boot.kernelModules = lib.mkIf (!isServer) ["rtl8812au"];
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

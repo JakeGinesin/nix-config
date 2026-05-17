@@ -22,6 +22,8 @@
       users.synchronous.imports = [../../home/home.nix];
     };
 
+    driver-main = true;
+
     boot.loader.efi.canTouchEfiVariables = true;
     boot.loader.efi.efiSysMountPoint = "/boot";
     services.logind.lidSwitchExternalPower = "ignore";
