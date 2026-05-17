@@ -127,6 +127,7 @@ in {
       python313Packages.pygments
       android-tools
       pstree
+      bubblewrap
       # texlive.combined.scheme-full
 
       # security

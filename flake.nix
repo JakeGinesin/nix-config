@@ -64,7 +64,10 @@
 
     mkHost = name: let
       rolePath = ./hosts/${name}/role.nix;
-      role = if builtins.pathExists rolePath then import rolePath else "driver-main";
+      role =
+        if builtins.pathExists rolePath
+        then import rolePath
+        else "driver-main";
     in {
       inherit name;
       value = nixpkgs.lib.nixosSystem {
@@ -75,7 +78,6 @@
         modules = [baseModule ./hosts/${name}/configuration.nix];
       };
     };
-
   in {
     nixosConfigurations = builtins.listToAttrs (map mkHost hosts);
   };

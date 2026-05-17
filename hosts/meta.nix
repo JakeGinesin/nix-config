@@ -34,7 +34,6 @@
       default = false;
       description = "k3s worker node";
     };
-    
   };
 
   config = {

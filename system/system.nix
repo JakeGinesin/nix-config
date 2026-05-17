@@ -115,7 +115,7 @@
 
   virtualisation.docker.extraOptions = ''
     --insecure-registry 100.125.181.75:5000
-    '';
+  '';
 
   virtualisation.containerd.settings = lib.mkIf isServer {
     plugins."io.containerd.grpc.v1.cri".registry.mirrors."100.125.181.75:5000" = {
