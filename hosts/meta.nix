@@ -34,6 +34,13 @@
       default = false;
       description = "k3s worker node";
     };
+
+    secrets.eval = lib.mkOption {
+      type = lib.types.attrs;
+      default = {
+        ips = import ../secrets/eval/ips.nix;
+      };
+    };
   };
 
   config = {
@@ -66,6 +73,11 @@
         };
         ip-cmu = {
           file = ../secrets/ip-cmu.age;
+          owner = "synchronous";
+          mode = "0400";
+        };
+        git-crypt = {
+          file = ../secrets/git-crypt.age;
           owner = "synchronous";
           mode = "0400";
         };

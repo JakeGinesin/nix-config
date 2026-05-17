@@ -128,6 +128,7 @@ in {
       android-tools
       pstree
       bubblewrap
+      git-crypt # for the config
       # texlive.combined.scheme-full
 
       # security

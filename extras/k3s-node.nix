@@ -45,7 +45,7 @@
     role = "agent";
     # token = "jakeginesin12345678910";
     tokenFile = config.age.secrets.kube.path;
-    serverAddr = "https://172.24.233.22:6443";
+    serverAddr = "https://${config.secrets.eval.ips.k3sMaster}:6443";
     extraFlags = toString [
       # "--bind-address=0.0.0.0" # API server listens on all interfaces
       # "--advertise-address=100.125.181.75" # Advertise this IP to cluster members
