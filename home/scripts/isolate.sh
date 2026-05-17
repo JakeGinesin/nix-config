@@ -38,53 +38,85 @@ REAL_HOME="$HOME"
 RUNTIME_DIR="$(mktemp -d -t isolate.XXXXXX)"
 trap 'rm -rf "$RUNTIME_DIR"' EXIT
 
-# - histfile: writable shadow over ~/.histfile, seeded with host history in
-#    standard mode so autosuggestions / Ctrl-R work for previous commands.
+# histfile: writable shadow over ~/.histfile, seeded with host history in
+# standard mode so autosuggestions / Ctrl-R work for previous commands.
 touch "$RUNTIME_DIR/histfile"
 if (( ! PARANOID )) && [[ -r "$REAL_HOME/.histfile" ]]; then
   cp "$REAL_HOME/.histfile" "$RUNTIME_DIR/histfile"
 fi
 
-# ── wrapper zsh config
+# Wrapper zsh config
 cat > "$RUNTIME_DIR/.zshenv" <<EOF
 [[ -r "$REAL_HOME/.zshenv" ]] && source "$REAL_HOME/.zshenv"
 EOF
 
 cat > "$RUNTIME_DIR/.zshrc" <<'EOF'
+if [[ ! -s "$HOME/.zshrc" ]]; then
+  print -P "%K{yellow}%F{black} WARN: \$HOME/.zshrc missing or empty in the sandbox %f%k"
+fi
 source "$HOME/.zshrc"
 
-# Your zshrc clobbers NIX_PATH; restore the flake-based one.
 export NIX_PATH="nixpkgs=flake:nixpkgs"
 
-# Force-load history from the (possibly seeded) ~/.histfile, then redirect
-# future writes to /tmp where atomic .new-and-rename can succeed.
 fc -R 2>/dev/null || true
 export HISTFILE="/tmp/.zsh_history"
 
-# Per-prompt indicator (runs after p10k's precmd so PROMPT-prepend works).
+# Indicator: prepend once per precmd, never stack. p10k rebuilds PROMPT each
+# precmd; we run after it and add our banner on top. If p10k isn't loaded,
+# PROMPT stays static and the guard prevents stacking.
 if [[ "$ISOLATE_MODE" == "paranoid" ]]; then
   _isolate_indicator() {
-    PROMPT=$'%K{magenta}%F{white}%B  PARANOID — tmpfs home, capped resources  %b%f%k\n'$PROMPT
+    [[ "$PROMPT" == *PARANOID* ]] || \
+      PROMPT=$'%K{magenta}%F{white}%B  PARANOID — tmpfs home, capped resources  %b%f%k\n'"$PROMPT"
   }
 else
   _isolate_indicator() {
-    PROMPT=$'%K{red}%F{white}%B  ISOLATE — only /work writable  %b%f%k\n'$PROMPT
+    [[ "$PROMPT" == *ISOLATE* ]] || \
+      PROMPT=$'%K{red}%F{white}%B  ISOLATE — only /work writable  %b%f%k\n'"$PROMPT"
   }
 fi
 typeset -ga precmd_functions
 precmd_functions+=(_isolate_indicator)
 EOF
 
-# ── per-mode filesystem layout and limits
+# Per-mode filesystem layout and resource limits
 if (( PARANOID )); then
+  SANDBOX_HOME="$RUNTIME_DIR/sandbox-home"
+  mkdir -p "$SANDBOX_HOME/.config"
+
+  # Stage dotfiles. cp -P preserves symlinks-as-symlinks; targets in /nix
+  # remain reachable inside the sandbox because /nix is bound.
+  for f in .zshrc .zshenv .zprofile .p10k.zsh; do
+    [[ -e "$REAL_HOME/$f" ]] && cp -P "$REAL_HOME/$f" "$SANDBOX_HOME/$f"
+  done
+
+  # Config dirs: symlink to resolved /nix/store paths (reachable in sandbox).
+  for d in nvim zsh; do
+    if [[ -e "$REAL_HOME/.config/$d" ]]; then
+      ln -s "$(realpath "$REAL_HOME/.config/$d")" "$SANDBOX_HOME/.config/$d"
+    fi
+  done
+
+  # ~/.zsh: just create the mount point; we ro-bind the real host directory
+  # over it below. This handles the case where ~/.zsh is a regular directory
+  # containing symlinks (so a top-level symlink wouldn't resolve correctly
+  # against the sandbox-home overlay).
+  [[ -e "$REAL_HOME/.zsh" ]] && mkdir -p "$SANDBOX_HOME/.zsh"
+
+  # Mount points for writable bind / tmpfs masks below.
+  touch "$SANDBOX_HOME/.histfile"
+  mkdir -p \
+    "$SANDBOX_HOME/.cache" \
+    "$SANDBOX_HOME/.local/state" \
+    "$SANDBOX_HOME/.local/share"
+
   HOME_MOUNTS=(
-    --tmpfs "$REAL_HOME"
-    --ro-bind-try "$REAL_HOME/.zshrc"       "$REAL_HOME/.zshrc"
-    --ro-bind-try "$REAL_HOME/.zshenv"      "$REAL_HOME/.zshenv"
-    --ro-bind-try "$REAL_HOME/.p10k.zsh"    "$REAL_HOME/.p10k.zsh"
-    --ro-bind-try "$REAL_HOME/.config/nvim" "$REAL_HOME/.config/nvim"
-    --ro-bind-try "$REAL_HOME/.config/zsh"  "$REAL_HOME/.config/zsh"
+    --ro-bind     "$SANDBOX_HOME"           "$REAL_HOME"
+    --ro-bind-try "$REAL_HOME/.zsh"         "$REAL_HOME/.zsh"
     --bind        "$RUNTIME_DIR/histfile"   "$REAL_HOME/.histfile"
+    --tmpfs       "$REAL_HOME/.cache"
+    --tmpfs       "$REAL_HOME/.local/state"
+    --tmpfs       "$REAL_HOME/.local/share"
   )
   HARDENING=(--cap-drop ALL --new-session)
   MODE_NAME="paranoid"
@@ -146,8 +178,8 @@ rc=$?
 set -e
 
 if (( PARANOID )); then
-  printf '\n\033[1;45;37m  ✓ EXITED isolate (paranoid) — back on host shell  \033[0m\n\n'
+  printf '\n\033[1;45;37m  EXITED isolate (paranoid), back on host shell  \033[0m\n\n'
 else
-  printf '\n\033[1;42;30m  ✓ EXITED isolate — back on host shell  \033[0m\n\n'
+  printf '\n\033[1;42;30m  EXITED isolate, back on host shell  \033[0m\n\n'
 fi
 exit "$rc"
