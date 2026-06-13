@@ -240,7 +240,7 @@ in {
                 name = "cure";
                 bookmarks = [
                   {
-                    name = "schedule";
+                    name = "cure53 schedule";
                     url = "${osConfig.secrets.eval.urls.cure-spreadsheet}";
                   }
                 ];
