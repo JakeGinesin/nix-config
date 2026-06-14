@@ -129,6 +129,7 @@ in {
       pstree
       bubblewrap
       git-crypt # for the config
+      smartmontools
       # texlive.combined.scheme-full
 
       # security
@@ -166,12 +167,28 @@ in {
         # for each script found, create a derivation installed in $PATH
         lib.lists.forEach files (
           file: let
-            scriptName = strings.removeSuffix ".sh" (basename file);
+            name = basename file;
+            contents = builtins.readFile file;
+            # scriptName = strings.removeSuffix ".sh" (basename file);
           in
-            pkgs.writeScriptBin
-            # (basename file) # the new package's name
-            scriptName
-            (builtins.readFile file)
+            if strings.hasSuffix ".py" name
+            then
+              pkgs.writers.writePython3Bin
+              (strings.removeSuffix ".py" name)
+              {
+                libraries = [];
+                flakeIgnore = ["E501"];
+              } # add pip deps / lint ignores here
+              
+              contents
+            else
+              pkgs.writeScriptBin
+              (strings.removeSuffix ".sh" name)
+              contents
+          # pkgs.writeScriptBin
+          # # (basename file) # the new package's name
+          # scriptName
+          # (builtins.readFile file)
         )
     );
 
