@@ -256,9 +256,6 @@ stack-fast-new() {
     done
 }
 
-The trick: wrap both sides in /. /hosts/rq/configuration.nix/ matches /rq/ but /latest.md/ won't match /test/. So -i rq hits the dir, -i hardware-configuration.nix hits the file, and -i test won't catch latest.
-}
-
 stack-b() {
   (
   while IFS= read -r -d '' file; do

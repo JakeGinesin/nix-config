@@ -17,6 +17,8 @@ And rebuild with:
 sudo nixos-rebuild switch --flake.#thonkpad
 ```
 
+you'll also need to run `unlock-gitcrypt.sh` initialize gitcrypt for eval-time secrets.
+
 # Some crazy dotfiles
 - [Sylk0s](https://github.com/sylk0s/dotfiles)
 - [Cajunvoodoo's](https://github.com/Cajunvoodoo/dotfiles)
@@ -39,3 +41,4 @@ Some subtleties about my setup:
 - bspwm on x is used, with sxhkd used for most hotkeys
 - papers automatically saved with zotero are [automatically searchable](https://github.com/JakeGinesin/nix-dots/tree/master/home/scripts/document-scripts)
 - there is an option for resolution in the [configuration.nix file](https://github.com/JakeGinesin/nix-dots/tree/master/hosts/rq)
+- [agenix](https://github.com/ryantm/agenix) is used for runtime secrets, and [git-crypt](https://github.com/AGWA/git-crypt) is used for eval-time secrets. My eval-time secrets aren't too important though, since I honestly have [little trust in the security of GPG](https://web.archive.org/web/20260331013802/https://gpg.fail/). 
