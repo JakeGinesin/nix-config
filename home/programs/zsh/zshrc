@@ -237,7 +237,7 @@ stack-fast-old() {
     done
 }
 
-stack-fast-new() {
+stack-fast() {
     local ignores=()
     # collect stuff we want to ignore
     if [[ "$1" == "--ignore" || "$1" == "-i" ]]; then
@@ -246,6 +246,7 @@ stack-fast-new() {
     fi
 
     rg -l --no-ignore --hidden . | while read -r file; do
+        # ignore the path if it is found in the header....
         local skip=0
         for ig in "${ignores[@]}"; do
             [[ "/$file/" == *"/$ig/"* ]] && skip=1 && break
