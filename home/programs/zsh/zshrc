@@ -230,11 +230,33 @@ stack() {
   find . -type f -exec echo -e "\n--- {} ---\n" \; -exec cat {} \;
 }
 
-stack-fast() {
+stack-fast-old() {
     rg -l . | while read -r file; do 
         echo -e "\n--- $file ---\n"
         cat "$file"
     done
+}
+
+stack-fast-new() {
+    local ignores=()
+    # collect stuff we want to ignore
+    if [[ "$1" == "--ignore" || "$1" == "-i" ]]; then
+        shift
+        ignores=("$@")
+    fi
+
+    rg -l --no-ignore --hidden . | while read -r file; do
+        local skip=0
+        for ig in "${ignores[@]}"; do
+            [[ "/$file/" == *"/$ig/"* ]] && skip=1 && break
+        done
+        (( skip )) && continue
+        echo -e "\n--- $file ---\n"
+        cat "$file"
+    done
+}
+
+The trick: wrap both sides in /. /hosts/rq/configuration.nix/ matches /rq/ but /latest.md/ won't match /test/. So -i rq hits the dir, -i hardware-configuration.nix hits the file, and -i test won't catch latest.
 }
 
 stack-b() {
