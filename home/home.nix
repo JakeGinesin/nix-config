@@ -130,6 +130,7 @@ in {
       bubblewrap
       git-crypt # for the config
       smartmontools
+      nvme-cli
       # texlive.combined.scheme-full
 
       # security
@@ -177,7 +178,7 @@ in {
               (strings.removeSuffix ".py" name)
               {
                 libraries = [];
-                flakeIgnore = ["E501"];
+                flakeIgnore = ["E501" "E401" "E302" "E303" "E305" "F541" "W291" "W293"];
               } # add pip deps / lint ignores here
               
               contents
