@@ -178,9 +178,11 @@ in {
               (strings.removeSuffix ".py" name)
               {
                 libraries = [];
-                flakeIgnore = ["E501" "E401" "E302" "E303" "E305" "F541" "W291" "W293"];
-              } # add pip deps / lint ignores here
-              
+                # ignore the stupid python linter.
+                # if i am going to be scripting in python,
+                # it is implied that i do not GAF about quality
+                flakeIgnore = ["E" "W" "F"];
+              }
               contents
             else
               pkgs.writeScriptBin
