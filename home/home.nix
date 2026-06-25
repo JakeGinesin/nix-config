@@ -131,6 +131,7 @@ in {
       git-crypt # for the config
       smartmontools
       nvme-cli
+      restic
       # texlive.combined.scheme-full
 
       # security
