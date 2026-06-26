@@ -85,7 +85,10 @@
       };
       secretsDir = "/home/synchronous/.agenix/agenix";
       secretsMountPoint = "/home/synchronous/.agenix/agenix.d";
-      identityPaths = ["/home/synchronous/.ssh/id_ed25519"];
+      identityPaths = [
+        "/home/synchronous/.ssh/id_ed25519"
+        "/home/synchronous/.ssh/host_ed25519"
+      ];
     };
   };
 }

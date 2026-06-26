@@ -28,5 +28,11 @@
     boot.loader.efi.efiSysMountPoint = "/boot";
     services.logind.lidSwitchExternalPower = "ignore";
     boot.loader.systemd-boot.enable = true;
+
+    age.secrets.restic-password = {
+      file = ../../secrets/restic-password.age;
+      owner = "synchronous";
+      mode = "0400";
+    };
   };
 }
