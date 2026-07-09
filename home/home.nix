@@ -132,6 +132,7 @@ in {
       smartmontools
       nvme-cli
       restic
+      claude-code # FUCK YOU ANTHROPIC
       # texlive.combined.scheme-full
 
       # security
