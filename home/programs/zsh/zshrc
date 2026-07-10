@@ -226,8 +226,26 @@ alias startpage="vim /home/synchronous/nix-cfg/home/programs/firefox/startpage/i
 
 alias verus-tcb=" rg 'assume\(false\)|external_body' | rg -v '//.*(assume\(false\)|external_body)'"
 
+# stack() {
+  # find . -type f -exec echo -e "\n--- {} ---\n" \; -exec cat {} \;
+# }
+
 stack() {
-  find . -type f -exec echo -e "\n--- {} ---\n" \; -exec cat {} \;
+  local file
+
+  if [[ -t 0 ]]; then
+    rg -l --no-ignore --hidden . |
+      while IFS= read -r file; do
+        printf '\n--- %s ---\n' "$file"
+        cat -- "$file"
+      done
+  else
+    while IFS= read -r file; do
+      [[ -f "$file" ]] || continue
+      printf '\n--- %s ---\n' "$file"
+      cat -- "$file"
+    done
+  fi
 }
 
 stack-fast-old() {
