@@ -214,10 +214,7 @@ in {
                     name = "verus docs";
                     url = "https://verus-lang.github.io/verus/guide/verus_macro_intro.html";
                   }
-                  {
-                    name = "verus zulip";
-                    url = "https://verus-lang.zulipchat.com/#feed";
-                  }
+
                   {
                     name = "vstd docs";
                     url = "https://verus-lang.github.io/verus/verusdoc/vstd/index.html";
@@ -233,6 +230,43 @@ in {
                   {
                     name = "secure foundations";
                     url = "https://github.com/secure-foundations";
+                  }
+                ];
+              }
+              {
+                name = "chats";
+                bookmarks = [
+                  {
+                    name = "verus zulip";
+                    url = "https://verus-lang.zulipchat.com/#feed";
+                  }
+                  {
+                    name = "iris mattermost";
+                    url = "https://mattermost.mpi-sws.org/iris/channels/off-topic";
+                  }
+                  {
+                    name = "lean zulip";
+                    url = "https://leanprover.zulipchat.com/";
+                  }
+                  {
+                    name = "rust zulip";
+                    url = "https://rust-lang.zulipchat.com";
+                  }
+                  {
+                    name = "soteria zulip";
+                    url = "https://soteria.zulipchat.com/";
+                  }
+                  {
+                    name = "hacspec zulip";
+                    url = "https://hacspec.zulipchat.com/";
+                  }
+                  {
+                    name = "aeneas zulip";
+                    url = "https://aeneas-verif.zulipchat.com/";
+                  }
+                  {
+                    name = "cmuf workspace";
+                    url = "https://cmuf-workspace.org/Products/Projects/Messages.aspx#sortBy=comments&sortOrder=descending";
                   }
                 ];
               }
