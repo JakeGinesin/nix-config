@@ -107,6 +107,11 @@
             command = "/run/current-system/sw/bin/nixos-rebuild";
             options = ["NOPASSWD"];
           }
+          {
+            # glorified status command
+            command = "/run/current-system/sw/bin/brief";
+            options = ["NOPASSWD"];
+          }
         ];
         users = ["synchronous"];
       }

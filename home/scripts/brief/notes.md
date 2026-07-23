@@ -5,3 +5,4 @@ things to add to brief:
 - compressing my todos on the system; sampling from idk?
 - website diff checking, rss feed tracking
 - reminders, cal integration
+- by default sudo
