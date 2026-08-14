@@ -159,6 +159,7 @@ in {
       hcxtools
       binwalk
       lz4
+      lima # for vm-iso.sh
     ]
     ++ (
       with lib; let
