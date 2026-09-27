@@ -27,5 +27,6 @@
     ./beets/default.nix
     # ./emacs/default.nix
     ./nnn/default.nix
+    ./yazi/default.nix
   ];
 }

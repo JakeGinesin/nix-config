@@ -237,6 +237,9 @@ super + {m}
 super + {n}
   sh /home/synchronous/.scripts/nnn/launch.sh
 
+super + {y}
+  yazi
+
 # nnn + journal
 super + {ctrl} + {n}
   sh /home/synchronous/.scripts/nnn/launch-journal.sh
