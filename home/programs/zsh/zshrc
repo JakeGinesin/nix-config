@@ -375,4 +375,4 @@ export NNN_FIFO=/tmp/nnn.fifo
 export NNN_TERMINAL=alacritty
 
 bindkey -s '^o' 'nnn -e ^M'
-bindkey -s '^o' 'yazi ^M' # pop yazi like it's hot
+bindkey -s '^y' 'yazi ^M' # pop yazi like it's hot
