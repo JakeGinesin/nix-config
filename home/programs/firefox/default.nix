@@ -120,8 +120,8 @@ in {
                     url = "https://search.nixos.org/packages";
                   }
                   {
-                    name = "dots";
-                    url = "https://github.com/JakeGinesin/nix-dots";
+                    name = "config";
+                    url = "https://github.com/JakeGinesin/nix-config";
                   }
                   {
                     name = "nix options";
@@ -276,6 +276,19 @@ in {
                   {
                     name = "cure53 schedule";
                     url = "${osConfig.secrets.eval.urls.cure-spreadsheet}";
+                  }
+                ];
+              }
+              {
+                name = "biz";
+                bookmarks = [
+                  {
+                    name = "mercury";
+                    url = "https://app.mercury.com";
+                  }
+                  {
+                    name = "northwest registered agent";
+                    url = "https://accounts.northwestregisteredagent.com/#/dashpanel";
                   }
                 ];
               }
