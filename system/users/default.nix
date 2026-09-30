@@ -48,7 +48,6 @@ in {
       legcord
       polybar-pulseaudio-control
       bluez # polybar
-      zotero
       texliveFull
       texlivePackages.latexmk
       nmap
