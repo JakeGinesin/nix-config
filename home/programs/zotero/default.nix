@@ -3,7 +3,7 @@
   lib,
   ...
 }: let
-  profile = "default";
+  profile = "oz1luut4.default";
   bbtVer = "7.0.76";
   bbt = pkgs.fetchurl {
     url = "https://github.com/retorquere/zotero-better-bibtex/releases/download/v${bbtVer}/zotero-better-bibtex-${bbtVer}.xpi";
