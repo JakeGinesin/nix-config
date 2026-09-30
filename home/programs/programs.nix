@@ -28,5 +28,6 @@
     # ./emacs/default.nix
     ./nnn/default.nix
     ./yazi/default.nix
+    ./zotero/default.nix
   ];
 }

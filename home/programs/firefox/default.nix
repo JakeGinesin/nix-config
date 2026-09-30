@@ -376,7 +376,7 @@ in {
         "devtools.theme" = "dark";
         # Enable ETP for decent security (makes firefox containers and many
         # common security/privacy add-ons redundant).
-        "browser.contentblocking.category" = "strict";
+        # "browser.contentblocking.category" = "strict";
         "privacy.donottrackheader.enabled" = true;
         "privacy.donottrackheader.value" = 1;
         "privacy.purge_trackers.enabled" = true;
@@ -708,6 +708,9 @@ in {
       "extensions.formautofill.creditCards.available" = false;
       "extensions.formautofill.creditCards.enabled" = false;
       "extensions.formautofill.heuristics.enabled" = false;
+
+      # for zotero
+      "network.lna.blocking" = false;
     };
   };
 }
