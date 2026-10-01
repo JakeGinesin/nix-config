@@ -23,7 +23,7 @@ in {
 
 
       [General]
-      StartWithLastProfile=1
+      StartWithLastProfile=2
       Version=2
     '';
   };
