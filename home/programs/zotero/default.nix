@@ -26,8 +26,6 @@
     Path=default
     Default=1
 
-
-
     [General]
     StartWithLastProfile=1
     Version=2
