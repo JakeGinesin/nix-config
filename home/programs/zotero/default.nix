@@ -28,7 +28,7 @@
 
     [General]
     StartWithLastProfile=1
-    Version=1
+    Version=2
   '';
 in {
   home.activation.zoteroProfile = lib.hm.dag.entryAfter ["linkGeneration"] ''
