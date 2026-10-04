@@ -29,7 +29,7 @@ window {
     cursor:             "default";  
     border: 1px;
     border-color: #565657;
-    width: 500px;
+    width: 800px;
 }
 
 inputbar {
@@ -48,7 +48,7 @@ entry {
 listview {
     enabled:            true;
     columns:            1;
-    lines:              10;
+    lines:              13;
     cycle:              true;
     dynamic:            true;
     scrollbar:          false;
