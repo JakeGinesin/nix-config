@@ -31,6 +31,7 @@
     Version=2
   '';
 in {
+  home.packages = [pkgs.zotero];
   home.activation.zoteroProfile = lib.hm.dag.entryAfter ["linkGeneration"] ''
     zdir="$HOME/.zotero/zotero"
     ini="$zdir/profiles.ini"
