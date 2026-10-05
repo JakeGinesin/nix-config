@@ -528,6 +528,9 @@ in {
 
         # compact mode
         "browser.compactmode.show" = true;
+
+        # for zotero
+        "network.lna.blocking" = false;
       };
     };
   };
@@ -708,9 +711,6 @@ in {
       "extensions.formautofill.creditCards.available" = false;
       "extensions.formautofill.creditCards.enabled" = false;
       "extensions.formautofill.heuristics.enabled" = false;
-
-      # for zotero
-      "network.lna.blocking" = false;
     };
   };
 }
