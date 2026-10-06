@@ -30,8 +30,62 @@
     StartWithLastProfile=1
     Version=2
   '';
+
+  pgrep = "${pkgs.procps}/bin/pgrep";
+  systemctl = "${pkgs.systemd}/bin/systemctl";
+  unit = "zotero-background.service";
+
+  # don't start (and fight over the profile lock) while a visible Zotero is open
+  noGui = pkgs.writeShellScript "zotero-no-gui" ''
+    ! ${pgrep} -u "$UID" -x zotero-bin >/dev/null
+  '';
+
+  # replaces `zotero`: swaps the background instance out for the GUI, then back in once it closes
+  launcher = pkgs.writeShellScript "zotero" ''
+    real=${pkgs.zotero}/bin/zotero
+
+    # a GUI is already open: just hand it the args (e.g. a zotero:// url)
+    if ! ${systemctl} --user -q is-active ${unit} && ${pgrep} -u "$UID" -x zotero-bin >/dev/null; then
+      exec "$real" "$@"
+    fi
+
+    ${systemctl} --user stop ${unit}
+    "$real" "$@"
+    ${systemctl} --user start ${unit}
+  '';
+
+  zotero = pkgs.symlinkJoin {
+    name = "zotero-${pkgs.zotero.version}";
+    paths = [pkgs.zotero];
+    postBuild = ''
+      rm $out/bin/zotero
+      ln -s ${launcher} $out/bin/zotero
+    '';
+  };
 in {
-  home.packages = [pkgs.zotero];
+  home.packages = [zotero];
+
+  # true --headless hangs connector saves (the item tree waits on a render that never happens),
+  # so run on a private Xvfb display instead: nothing shows up on screen, ~0 cpu when idle
+  systemd.user.services.zotero-background = {
+    Unit = {
+      Description = "Zotero on a private virtual display, for browser connector saves";
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
+    };
+    Service = {
+      ExecCondition = "${noGui}";
+      ExecStart = "${pkgs.xvfb-run}/bin/xvfb-run -a -s '-screen 0 1280x800x24' ${pkgs.zotero}/bin/zotero -no-remote";
+      Restart = "on-failure";
+      RestartSec = 10;
+      TimeoutStopSec = 10;
+      Nice = 19;
+      CPUWeight = "idle";
+      IOSchedulingClass = "idle";
+    };
+    Install.WantedBy = ["graphical-session.target"];
+  };
+
   home.activation.zoteroProfile = lib.hm.dag.entryAfter ["linkGeneration"] ''
     zdir="$HOME/.zotero/zotero"
     ini="$zdir/profiles.ini"
