@@ -17,6 +17,7 @@
 
     # last known good for some reason
     nixpkgs-zotero.url = "github:NixOS/nixpkgs/8a2f738d9d1f1d986b5a4cd2fd2061a7127237d7";
+    nixpkgs-flameshot.url = "github:NixOS/nixpkgs/8a2f738d9d1f1d986b5a4cd2fd2061a7127237d7";
 
     nixpkgs-clisp.url = "github:NixOS/nixpkgs/da320e5472f021b96a883f71fc525ca0e4815273";
 
@@ -37,6 +38,7 @@
     nixpkgs-signal,
     verus-flake,
     nixpkgs-zotero,
+    nixpkgs-flameshot,
   } @ inputs: let
     system = "x86_64-linux";
 
@@ -59,6 +61,7 @@
           clisp = nixpkgs-clisp.legacyPackages.${system}.clisp;
           signal-desktop = nixpkgs-signal.legacyPackages.${system}.signal-desktop;
           zotero = nixpkgs-zotero.legacyPackages.${system}.zotero;
+          flameshot = nixpkgs-flameshot.legacyPackages.${system}.flameshot;
         })
       ];
       environment.systemPackages = [

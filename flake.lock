@@ -155,6 +155,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-flameshot": {
+      "locked": {
+        "lastModified": 1745391562,
+        "narHash": "sha256-sPwcCYuiEopaafePqlG826tBhctuJsLx/mhKKM5Fmjo=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "8a2f738d9d1f1d986b5a4cd2fd2061a7127237d7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "8a2f738d9d1f1d986b5a4cd2fd2061a7127237d7",
+        "type": "github"
+      }
+    },
     "nixpkgs-signal": {
       "locked": {
         "lastModified": 1787498568,
@@ -242,6 +258,7 @@
         "home-manager": "home-manager_2",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-clisp": "nixpkgs-clisp",
+        "nixpkgs-flameshot": "nixpkgs-flameshot",
         "nixpkgs-signal": "nixpkgs-signal",
         "nixpkgs-zotero": "nixpkgs-zotero",
         "verus-flake": "verus-flake"

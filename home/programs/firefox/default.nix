@@ -71,15 +71,22 @@ in {
           display:none;
         }
 
-        /* https://www.reddit.com/r/FirefoxCSS/comments/1igbt7c/comment/mangluv/ */
         /* hide top right gap */
         .titlebar-spacer[type="post-tabs"] {
           display: none !important
         }
 
-        .tab-background .tabbrowser-tab {
-          border-radius: 0 !important;
-          margin-block: 0 !important;
+        /* 1. Override Firefox's internal UI variables */
+        :root {
+          --tab-border-radius: 0px !important; /* Kills the curves */
+          --tab-block-margin: 0px !important;  /* Kills the top/bottom floating gap */
+        }
+
+        /* 2. Brute-force the background element directly */
+        .tabbrowser-tab .tab-background {
+          border-radius: 0px !important;
+          margin-block: 0px !important;
+          margin-bottom: 0px !important;
         }
       '';
       search = {
