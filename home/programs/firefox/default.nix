@@ -76,6 +76,11 @@ in {
         .titlebar-spacer[type="post-tabs"] {
           display: none !important
         }
+
+        .tab-background {
+          border-radius: 0 !important;
+          margin-block: 0 !important;
+        }
       '';
       search = {
         force = true;
