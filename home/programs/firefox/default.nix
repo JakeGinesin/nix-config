@@ -76,17 +76,16 @@ in {
           display: none !important
         }
 
-        /* 1. Override Firefox's internal UI variables */
+        /* 1. Set subtle curves and a slight gap */
         :root {
-          --tab-border-radius: 0px !important; /* Kills the curves */
-          --tab-block-margin: 0px !important;  /* Kills the top/bottom floating gap */
+          --tab-border-radius: 4px !important; /* Slight curve on the edges */
+          --tab-block-margin: 3px !important;  /* Slight gap from the window edge */
         }
 
-        /* 2. Brute-force the background element directly */
+        /* 2. Apply directly to the tab background */
         .tabbrowser-tab .tab-background {
-          border-radius: 0px !important;
-          margin-block: 0px !important;
-          margin-bottom: 0px !important;
+          border-radius: 4px !important;
+          margin-block: 3px !important;
         }
       '';
       search = {
