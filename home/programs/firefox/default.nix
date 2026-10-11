@@ -344,6 +344,10 @@ in {
 
         "extensions.activeThemeID" = "firefox-compact-dark@mozilla.org";
         "full-screen-api.ignore-widgets" = true;
+        "ui.systemUsesDarkTheme" = 1;
+        "browser.theme.toolbar-theme" = 0;
+        "browser.theme.content-theme" = 0;
+        "layout.css.prefers-color-scheme.content-override" = 0;
 
         # tab open behavior
         "browser.search.openintab" = true;
