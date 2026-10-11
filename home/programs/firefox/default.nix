@@ -77,7 +77,7 @@ in {
           display: none !important
         }
 
-        .tab-background {
+        .tab-background .tabbrowser-tab {
           border-radius: 0 !important;
           margin-block: 0 !important;
         }
@@ -347,12 +347,8 @@ in {
         # should change this based on your resolution
         "layout.css.devPixelsPerPx" = scale;
 
-        "extensions.activeThemeID" = "firefox-compact-dark@mozilla.org";
-        "full-screen-api.ignore-widgets" = true;
-        "ui.systemUsesDarkTheme" = 1;
-        "browser.theme.toolbar-theme" = 0;
-        "browser.theme.content-theme" = 0;
-        "layout.css.prefers-color-scheme.content-override" = 0;
+        "extensions.activeThemeID" = "default-theme@mozilla.org";
+        "browser.uidensity" = 1; # Forces the UI back into compact mode
 
         # tab open behavior
         "browser.search.openintab" = true;
@@ -548,7 +544,6 @@ in {
     settings = {
       "app.update.auto" = false;
       # "browser.startup.homepage" = "https://lobste.rs";
-      "extensions.activeThemeID" = "firefox-compact-dark@mozilla.org";
       # "browser.urlbar.placeholderName" = "Wikipedia";
       # "browser.urlbar.suggest.history" = "false";
       # "privacy.resistFingerprinting" = "false";
