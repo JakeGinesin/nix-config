@@ -13,7 +13,7 @@
     ./hardware/hardware.nix
     ./networking/default.nix
     ./users/default.nix
-    ./niri/default.nix
+    # ./niri/default.nix
   ];
 
   # Set your time zone.

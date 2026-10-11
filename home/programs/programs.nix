@@ -31,7 +31,7 @@
     ./zotero/default.nix
 
     # niri
-    ./niri/default.nix
-    ./waybar/default.nix
+    # ./niri/default.nix
+    # ./waybar/default.nix
   ];
 }
