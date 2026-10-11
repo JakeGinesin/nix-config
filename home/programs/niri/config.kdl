@@ -31,7 +31,7 @@ cursor {
 // the internal panel to 1.0; otherwise niri auto-picks ~1.5 on the rq's 1440p panel.
 // Externals are hotplugged at their preferred mode, no add-hdmi script needed.
 output "eDP-1" {
-    scale 1.0
+    scale 1.5
 }
 output "LVDS-1" {
     scale 1.0
@@ -111,6 +111,12 @@ window-rule {
 window-rule {
     match app-id=r#"(?i)chromium"#
     open-on-workspace "2"
+}
+
+environment {
+    ELECTRON_OZONE_PLATFORM_HINT "auto"   // VS Code, Discord, Slack, etc
+    QT_QPA_PLATFORM "wayland"
+    MOZ_ENABLE_WAYLAND "1"                // older Firefox versions
 }
 
 binds {
@@ -227,15 +233,30 @@ binds {
     Mod+Alt+Shift+0 { move-window-to-workspace "20" focus=false; }
 
     // prev/next desktop (niri stacks workspaces vertically: prev = up)
-    Mod+Left { focus-workspace-up; }
-    Mod+Right { focus-workspace-down; }
-    Mod+BracketLeft { focus-workspace-up; }
-    Mod+BracketRight { focus-workspace-down; }
+    // Mod+Left { focus-workspace-up; }
+    // Mod+Right { focus-workspace-down; }
+    // Mod+BracketLeft { focus-workspace-up; }
+    // Mod+BracketRight { focus-workspace-down; }
     // fast-shift: skip empty desktops (home/scripts/niri/niri-fast-shift.sh)
-    Mod+Ctrl+Left { spawn "niri-fast-shift" "left"; }
-    Mod+Ctrl+Right { spawn "niri-fast-shift" "right"; }
-    Mod+Ctrl+BracketLeft { spawn "niri-fast-shift" "left"; }
-    Mod+Ctrl+BracketRight { spawn "niri-fast-shift" "right"; }
+
+    // Mod+Ctrl+Left { spawn "niri-fast-shift" "left"; }
+    // Mod+Ctrl+Right { spawn "niri-fast-shift" "right"; }
+    // Mod+Ctrl+BracketLeft { spawn "niri-fast-shift" "left"; }
+    // Mod+Ctrl+BracketRight { spawn "niri-fast-shift" "right"; }
+
+    // Left/right: move between columns in the current workspace
+    Mod+Left  { focus-column-left; }
+    Mod+Right { focus-column-right; }
+
+    // Up/down: switch workspaces
+    Mod+Up    { focus-workspace-up; }
+    Mod+Down  { focus-workspace-down; }
+
+    // Ctrl variants carry the focused window along
+    Mod+Ctrl+Left  { move-column-left; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+Up    { move-column-to-workspace-up; }
+    Mod+Ctrl+Down  { move-column-to-workspace-down; }
 
     // --------------------------------------------------------- move/resize
     // bspwm: alt+arrow grows the window on that side, alt+shift+arrow shrinks it.
