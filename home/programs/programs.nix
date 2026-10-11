@@ -29,5 +29,9 @@
     ./nnn/default.nix
     ./yazi/default.nix
     ./zotero/default.nix
+
+    # niri
+    ./niri/default.nix
+    ./waybar/default.nix
   ];
 }

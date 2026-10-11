@@ -1,0 +1,311 @@
+// niri port of home/programs/sxhkd/sxhkdrc + home/programs/bspwm/bspwmrc.
+// Binds keep their sxhkd keys; niri-only extras are grouped at the bottom of `binds`.
+// Mod+Shift+/ shows the cheat sheet. `niri validate` checks this file, and
+// home/programs/niri/default.nix runs it at build time, so a typo fails the rebuild.
+
+input {
+    keyboard {
+        xkb {
+            layout "us"
+        }
+    }
+
+    // system/services/synaptics: no tap-to-click, natural two-finger scrolling.
+    // (niri talks to libinput directly, so the X synaptics driver settings don't apply)
+    touchpad {
+        natural-scroll
+        scroll-method "two-finger"
+        dwt
+    }
+
+    // focus-follows-mouse is deliberately absent: focus only ever moves from the keyboard
+}
+
+// you never touch it, so keep it out of the way
+cursor {
+    hide-when-typing
+    hide-after-inactive-ms 3000
+}
+
+// X never scaled anything (polybar/firefox carry per-res sizes instead), so pin
+// the internal panel to 1.0; otherwise niri auto-picks ~1.5 on the rq's 1440p panel.
+// Externals are hotplugged at their preferred mode, no add-hdmi script needed.
+output "eDP-1" {
+    scale 1.0
+}
+output "LVDS-1" {
+    scale 1.0
+}
+
+layout {
+    // bspwm: window_gap 2, border_width 2, split_ratio 0.50
+    gaps 2
+    default-column-width { proportion 0.5; }
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+    center-focused-column "never"
+
+    focus-ring {
+        off
+    }
+    // bspwm's default border colours (you never overrode them)
+    border {
+        width 2
+        active-color "#817f7f"
+        inactive-color "#30302f"
+    }
+}
+
+// no clickable titlebars
+prefer-no-csd
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+// `nitrogen --restore` equivalent (home/scripts/niri/niri-wallpaper.sh).
+// waybar comes up via systemd, dunst via dbus, same as polybar/dunst under X.
+spawn-at-startup "niri-wallpaper"
+
+// bspwm's 20 fixed desktops. Named workspaces persist while empty, so Mod+5
+// always means "desktop 5" instead of niri's usual dynamic numbering.
+workspace "1"
+workspace "2"
+workspace "3"
+workspace "4"
+workspace "5"
+workspace "6"
+workspace "7"
+workspace "8"
+workspace "9"
+workspace "10"
+workspace "11"
+workspace "12"
+workspace "13"
+workspace "14"
+workspace "15"
+workspace "16"
+workspace "17"
+workspace "18"
+workspace "19"
+workspace "20"
+
+// bspc rule -a Zotero -o desktop=19 focus=off   (-o: one-shot, i.e. the startup window)
+window-rule {
+    match app-id=r#"(?i)^zotero$"# at-startup=true
+    open-on-workspace "19"
+    open-focused false
+}
+
+// bspc rule -a Gimp desktop='^8' state=floating follow=on
+window-rule {
+    match app-id=r#"(?i)gimp"#
+    open-on-workspace "8"
+    open-floating true
+}
+
+// bspc rule -a Chromium desktop='^2'
+window-rule {
+    match app-id=r#"(?i)chromium"#
+    open-on-workspace "2"
+}
+
+binds {
+    // ---------------------------------------------------------------- apps
+    Mod+Return { spawn "alacritty"; }
+    Mod+Space { spawn "rofi" "-show" "drun"; }
+    Mod+G { spawn "firefox" "www.google.com"; }
+    Mod+Shift+G { spawn "firefox" "--new-window" "www.google.com"; }
+    Mod+F { spawn "firefox"; }
+    Mod+Shift+F { spawn "firefox" "--private-window"; }
+    Mod+Z { spawn "zotero"; }
+    Mod+Shift+D { spawn "pkill" "-f" "legcord"; }
+    Mod+Shift+H { spawn "pkill" "-f" "slack"; }
+
+    // -------------------------------------------------------- notes / scripts
+    // same command strings as sxhkdrc (spawn-sh = sxhkd's `sh -c`)
+    Mod+O { spawn-sh "sh nf daily"; }
+    Mod+Shift+O { spawn-sh "sh nf daily"; }
+    Mod+Semicolon { spawn-sh "sh nf idk"; }
+    Mod+M { spawn-sh "sh nf misc"; }
+    Mod+P { spawn-sh "sh nf todo"; }
+    Mod+Ctrl+O { spawn-sh "sh nf search"; }
+    Mod+Ctrl+P { spawn-sh "sh paper-search-cached"; }
+    Mod+Ctrl+L { spawn-sh "sh paper-search"; }
+    Mod+Ctrl+K { spawn-sh "sh /home/synchronous/.scripts/vimwiki/search_people.sh"; }
+    Mod+Ctrl+C { spawn-sh "cs-browser"; }
+    Mod+Alt+C { spawn-sh "cs-firefox"; }
+    Mod+N { spawn-sh "sh /home/synchronous/.scripts/nnn/launch.sh"; }
+    Mod+Ctrl+N { spawn-sh "sh /home/synchronous/.scripts/nnn/launch-journal.sh"; }
+
+    // ------------------------------------------------------------- session
+    // bspc quit -> niri quit (asks first; Enter confirms)
+    Mod+Alt+Q { quit; }
+    // bspc wm -r -> nothing to restart in niri (config hot-reloads), so restart the bar
+    Mod+Alt+R { spawn "systemctl" "--user" "restart" "waybar.service"; }
+    // xbindkeys: Control+Alt+Delete -> xlock
+    Ctrl+Alt+Delete allow-inhibiting=false { spawn "swaylock"; }
+
+    // --------------------------------------------------------- close / kill
+    Mod+W { close-window; }
+    // bspc node -k; niri has no kill action (home/scripts/niri/niri-kill.sh)
+    Mod+Shift+W { spawn "niri-kill"; }
+
+    // --------------------------------------------------------- state/flags
+    Mod+T { move-window-to-tiling; }
+    // no pseudo-tiling in niri; cycle the column through 1/3, 1/2, 2/3 instead
+    Mod+Shift+T { switch-preset-column-width; }
+    Mod+S { move-window-to-floating; }
+    // toggles, so Mod+A again leaves fullscreen (Mod+T won't)
+    Mod+A { fullscreen-window; }
+
+    // ---------------------------------------------------------- focus/swap
+    // j/k/i/l = west/south/north/east, kept local to the workspace like your .local
+    Mod+J { focus-column-left; }
+    Mod+K { focus-window-down; }
+    Mod+I { focus-window-up; }
+    Mod+L { focus-column-right; }
+    Mod+Shift+J { move-column-left; }
+    Mod+Shift+K { move-window-down; }
+    Mod+Shift+I { move-window-up; }
+    Mod+Shift+L { move-column-right; }
+
+    // next/prev window on the desktop, wrapping
+    Mod+C { focus-column-right-or-first; }
+    Mod+Shift+C { focus-column-left-or-last; }
+
+    // bspc {node,desktop} -f last
+    Mod+Grave { focus-window-previous; }
+    Mod+Tab { focus-workspace-previous; }
+    Alt+Tab { focus-window-previous; }
+
+    // ------------------------------------------------------------ desktops
+    // focus or send; sending doesn't follow, same as bspc node -d
+    Mod+1 { focus-workspace "1"; }
+    Mod+2 { focus-workspace "2"; }
+    Mod+3 { focus-workspace "3"; }
+    Mod+4 { focus-workspace "4"; }
+    Mod+5 { focus-workspace "5"; }
+    Mod+6 { focus-workspace "6"; }
+    Mod+7 { focus-workspace "7"; }
+    Mod+8 { focus-workspace "8"; }
+    Mod+9 { focus-workspace "9"; }
+    Mod+0 { focus-workspace "10"; }
+    Mod+Shift+1 { move-window-to-workspace "1" focus=false; }
+    Mod+Shift+2 { move-window-to-workspace "2" focus=false; }
+    Mod+Shift+3 { move-window-to-workspace "3" focus=false; }
+    Mod+Shift+4 { move-window-to-workspace "4" focus=false; }
+    Mod+Shift+5 { move-window-to-workspace "5" focus=false; }
+    Mod+Shift+6 { move-window-to-workspace "6" focus=false; }
+    Mod+Shift+7 { move-window-to-workspace "7" focus=false; }
+    Mod+Shift+8 { move-window-to-workspace "8" focus=false; }
+    Mod+Shift+9 { move-window-to-workspace "9" focus=false; }
+    Mod+Shift+0 { move-window-to-workspace "10" focus=false; }
+
+    Mod+Alt+1 { focus-workspace "11"; }
+    Mod+Alt+2 { focus-workspace "12"; }
+    Mod+Alt+3 { focus-workspace "13"; }
+    Mod+Alt+4 { focus-workspace "14"; }
+    Mod+Alt+5 { focus-workspace "15"; }
+    Mod+Alt+6 { focus-workspace "16"; }
+    Mod+Alt+7 { focus-workspace "17"; }
+    Mod+Alt+8 { focus-workspace "18"; }
+    Mod+Alt+9 { focus-workspace "19"; }
+    Mod+Alt+0 { focus-workspace "20"; }
+    Mod+Alt+Shift+1 { move-window-to-workspace "11" focus=false; }
+    Mod+Alt+Shift+2 { move-window-to-workspace "12" focus=false; }
+    Mod+Alt+Shift+3 { move-window-to-workspace "13" focus=false; }
+    Mod+Alt+Shift+4 { move-window-to-workspace "14" focus=false; }
+    Mod+Alt+Shift+5 { move-window-to-workspace "15" focus=false; }
+    Mod+Alt+Shift+6 { move-window-to-workspace "16" focus=false; }
+    Mod+Alt+Shift+7 { move-window-to-workspace "17" focus=false; }
+    Mod+Alt+Shift+8 { move-window-to-workspace "18" focus=false; }
+    Mod+Alt+Shift+9 { move-window-to-workspace "19" focus=false; }
+    Mod+Alt+Shift+0 { move-window-to-workspace "20" focus=false; }
+
+    // prev/next desktop (niri stacks workspaces vertically: prev = up)
+    Mod+Left { focus-workspace-up; }
+    Mod+Right { focus-workspace-down; }
+    Mod+BracketLeft { focus-workspace-up; }
+    Mod+BracketRight { focus-workspace-down; }
+    // fast-shift: skip empty desktops (home/scripts/niri/niri-fast-shift.sh)
+    Mod+Ctrl+Left { spawn "niri-fast-shift" "left"; }
+    Mod+Ctrl+Right { spawn "niri-fast-shift" "right"; }
+    Mod+Ctrl+BracketLeft { spawn "niri-fast-shift" "left"; }
+    Mod+Ctrl+BracketRight { spawn "niri-fast-shift" "right"; }
+
+    // --------------------------------------------------------- move/resize
+    // bspwm: alt+arrow grows the window on that side, alt+shift+arrow shrinks it.
+    // niri sizes columns rather than edges, so left/right act on width, up/down on height.
+    // these also resize floating windows.
+    Alt+Left { set-column-width "+40"; }
+    Alt+Right { set-column-width "+40"; }
+    Alt+Up { set-window-height "+40"; }
+    Alt+Down { set-window-height "+40"; }
+    Alt+Shift+Left { set-column-width "-40"; }
+    Alt+Shift+Right { set-column-width "-40"; }
+    Alt+Shift+Up { set-window-height "-40"; }
+    Alt+Shift+Down { set-window-height "-40"; }
+
+    // move a floating window by 40px (only exposed over IPC, hence the spawn).
+    // this is exactly your sxhkdrc mapping (w=left, s=down, a=up, d=right);
+    // swap a/w if that was a typo
+    Alt+W { spawn "niri" "msg" "action" "move-floating-window" "-x" "-40"; }
+    Alt+S { spawn "niri" "msg" "action" "move-floating-window" "-y" "+40"; }
+    Alt+A { spawn "niri" "msg" "action" "move-floating-window" "-y" "-40"; }
+    Alt+D { spawn "niri" "msg" "action" "move-floating-window" "-x" "+40"; }
+
+    // was `rfkill unblock all | iwctl ...`; you're on NetworkManager now
+    Alt+Shift+W { spawn-sh "rfkill unblock all; nmcli device wifi rescan"; }
+
+    // ---------------------------------------------------------- screenshots
+    // flameshot full -c -> clipboard only
+    Print { screenshot-screen write-to-disk=false; }
+    // flameshot gui -> niri's picker. Enter takes the preselected region (last one
+    // used, else the centre of the screen), Ctrl+C = clipboard only, Esc cancels.
+    // Changing the region needs the mouse, so for keyboard-only grabs:
+    Mod+Shift+S { screenshot; }
+    // focused window -> clipboard
+    Mod+Ctrl+S { screenshot-window write-to-disk=false; }
+
+    // ------------------------------------------------------ media / brightness
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "pactl" "set-sink-volume" "@DEFAULT_SINK@" "+1000"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "pactl" "set-sink-volume" "@DEFAULT_SINK@" "-1000"; }
+    XF86AudioMute allow-when-locked=true { spawn "pactl" "set-sink-mute" "@DEFAULT_SINK@" "toggle"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "pactl" "set-source-mute" "@DEFAULT_SOURCE@" "toggle"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "set" "20+"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "set" "20-"; }
+
+    // ================= niri-only extras, needed to never reach for the mouse =========
+    // dunst: under X you dismissed these by clicking
+    Mod+BackSpace { spawn "dunstctl" "close"; }
+    Mod+Shift+BackSpace { spawn "dunstctl" "close-all"; }
+    Mod+Ctrl+BackSpace { spawn "dunstctl" "history-pop"; }
+
+    // floating windows live on their own layer; this hops focus between the two
+    Mod+Shift+Space { switch-focus-between-floating-and-tiling; }
+
+    // stack the focused window into the neighbouring column / pop it back out
+    Mod+Comma { consume-or-expel-window-left; }
+    Mod+Period { consume-or-expel-window-right; }
+    // monocle-ish
+    Mod+X { maximize-column; }
+
+    // carry the focused window one desktop up/down
+    Mod+Shift+BracketLeft { move-window-to-workspace-up; }
+    Mod+Shift+BracketRight { move-window-to-workspace-down; }
+
+    // monitors
+    Mod+Shift+Left { focus-monitor-left; }
+    Mod+Shift+Right { focus-monitor-right; }
+    Mod+Ctrl+Shift+Left { move-window-to-monitor-left; }
+    Mod+Ctrl+Shift+Right { move-window-to-monitor-right; }
+
+    // zoomed-out view of everything; arrows (or your Mod+j/k/i/l) then Enter
+    Mod+E { toggle-overview; }
+    Mod+Shift+Slash { show-hotkey-overlay; }
+}
+
