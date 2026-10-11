@@ -6,7 +6,7 @@
   services.ssh-agent.enable = true;
   programs.git = {
     enable = true;
-    package = pkgs.gitAndTools.gitFull;
+    package = pkgs.gitFull;
 
     userName = "JakeGinesin";
     userEmail = "jakeginesin@gmail.com";

@@ -13,7 +13,7 @@
       noto-fonts-cjk-sans
       noto-fonts-cjk-serif
       siji
-      ubuntu_font_family
+      ubuntu-classic # ubuntu_font_family
       noto-fonts-cjk-sans
       b612
       nerd-fonts.noto

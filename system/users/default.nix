@@ -34,7 +34,7 @@ in {
       # librewolf
       eza
       flameshot
-      neofetch
+      fastfetch # neofetch
       lolcat
       nnn
       xclip

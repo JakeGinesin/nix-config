@@ -77,7 +77,7 @@ in {
       sshpass
       mpv
       jellyfin-ffmpeg
-      simple-mtpfs
+      go-mtpfs
       signal-desktop
       slack
       nodejs_24
@@ -107,7 +107,7 @@ in {
       feh
       ncdu
       clisp
-      libsForQt5.qt5.qttools
+      qt5.qttools
       bc # for qdbus + bc for pomodoro script
       # rocmPackages.llvm.clang-unwrapped
       # direnv

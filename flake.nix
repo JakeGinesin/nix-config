@@ -15,6 +15,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # last known good for some reason
+    nixpkgs-zotero.url = "github:NixOS/nixpkgs/8a2f738d9d1f1d986b5a4cd2fd2061a7127237d7";
+
     nixpkgs-clisp.url = "github:NixOS/nixpkgs/da320e5472f021b96a883f71fc525ca0e4815273";
 
     # pin only signal versions jake likes. recall, you must back up .config/Signal when changing this
@@ -33,6 +36,7 @@
     nixpkgs-clisp,
     nixpkgs-signal,
     verus-flake,
+    nixpkgs-zotero,
   } @ inputs: let
     system = "x86_64-linux";
 
@@ -54,6 +58,7 @@
         (final: _prev: {
           clisp = nixpkgs-clisp.legacyPackages.${system}.clisp;
           signal-desktop = nixpkgs-signal.legacyPackages.${system}.signal-desktop;
+          zotero = nixpkgs-zotero.legacyPackages.${system}.zotero;
         })
       ];
       environment.systemPackages = [

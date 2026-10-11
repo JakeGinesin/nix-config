@@ -135,7 +135,7 @@ alias lll="exa -a --sort=type"
 # alias tree="exa -T"
 
 # Lolcats!!
-alias neofetch="neofetch | lolcat"
+alias neofetch="fastfetch | lolcat"
 
 # screenshot
 alias screenshot="flameshot"

@@ -150,8 +150,12 @@
     };
   };
 
-  boot.extraModulePackages = lib.mkIf (!isServer) (with config.boot.kernelPackages; [rtl88xxau-aircrack]);
-  boot.kernelModules = lib.mkIf (!isServer) ["rtl8812au"];
+  # aircrack's rtl88xxau is marked broken on kernel >= 6.17; nixpkgs now defaults to 6.18
+  # boot.kernelPackages = lib.mkIf (!isServer) pkgs.linuxPackages_6_12;
+  # boot.extraModulePackages = lib.mkIf (!isServer) (with config.boot.kernelPackages; [rtl88xxau-aircrack]);
+  # boot.kernelModules = lib.mkIf (!isServer) ["rtl8812au"];
+  # boot.extraModulePackages = lib.mkIf (!isServer) (with config.boot.kernelPackages; [rtl88xxau-aircrack]);
+  # boot.kernelModules = lib.mkIf (!isServer) ["rtl8812au"];
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
