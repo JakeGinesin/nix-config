@@ -3,31 +3,24 @@
   lib,
   ...
 }: let
-  # pinned nixpkgs-unstable snapshot, used only for zotero (7.0.15 in stable lacks the
-  # saveStandaloneAttachment endpoint the connector needs)
-  unstable =
+  # nixpkgs dropped firefox-esr-140 on 2026-09-28 and now builds zotero against esr-153, which
+  # zotero's build scripts (written for 140) don't support -- zotero fails to build after that.
+  # pin zotero to the nixpkgs rev from before the flake bump (substituted from cache, no source build)
+  # rev:    git -C ~/nix-cfg show HEAD~1:flake.lock | jq -r .nodes.nixpkgs.locked.rev
+  # sha256: nix-prefetch-url --unpack https://github.com/NixOS/nixpkgs/archive/<rev>.tar.gz
+  zoteroNixpkgs =
     import (builtins.fetchTarball {
-      url = "https://github.com/NixOS/nixpkgs/archive/6510408d147d8c5e6d76043e899e9251756f6a75.tar.gz";
-      sha256 = "sha256-XK4KceonkwD8LuMAt/vNrz982mXJM5jeHAxMwsUXXAQ=";
+      url = "https://github.com/NixOS/nixpkgs/archive/8a2f738d9d1f1d986b5a4cd2fd2061a7127237d7.tar.gz";
+      sha256 = "0fls8p72hjk8zvqw49kfrf2l3ayvpi8sm3zpd5d8l4m2ic4irz5h";
     }) {
       inherit (pkgs.stdenv.hostPlatform) system;
     };
+  zoteroPkg = zoteroNixpkgs.zotero;
 
-  # zotero 10.0.4 targets Firefox 140 ESR, but nixpkgs builds it against 153, which no longer
-  # ships the AboutTranslations actors. app/scripts/fetch_xulrunner (modify_omni, set -e) tries
-  # to rm them and strip their block from ActorManagerParent.sys.mjs, and aborts; drop those lines
-  zoteroPkg = unstable.zotero.overrideAttrs (old: {
-    postPatch =
-      (old.postPatch or "")
-      + ''
-        sed -i '/AboutTranslations/d' app/scripts/fetch_xulrunner
-      '';
-  });
-
-  bbtVer = "9.0.71";
+  bbtVer = "7.0.76";
   bbt = pkgs.fetchurl {
     url = "https://github.com/retorquere/zotero-better-bibtex/releases/download/v${bbtVer}/zotero-better-bibtex-${bbtVer}.xpi";
-    hash = "sha256-v2GhaQ3IorerCb6d4siZhvT7bUlcgkB9ibECsm+6qdU=";
+    hash = "sha256-4MWwqSoOWPGiuLiZA6BfS24ScDdYhDto+jNF9l0C7kw=";
   };
 
   userJs = pkgs.writeText "zotero-user.js" ''
