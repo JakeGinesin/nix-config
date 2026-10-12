@@ -3,24 +3,26 @@
   lib,
   ...
 }: let
-  # nixpkgs dropped firefox-esr-140 on 2026-09-28 and now builds zotero against esr-153, which
-  # zotero's build scripts (written for 140) don't support -- zotero fails to build after that.
-  # pin zotero to the nixpkgs rev from before the flake bump (substituted from cache, no source build)
-  # rev:    git -C ~/nix-cfg show HEAD~1:flake.lock | jq -r .nodes.nixpkgs.locked.rev
-  # sha256: nix-prefetch-url --unpack https://github.com/NixOS/nixpkgs/archive/<rev>.tar.gz
+  # zotero's build scripts edit firefox-esr-140's omni.ja by exact name, so it only builds against
+  # esr-140. on unstable, esr-140 is marked broken (glibc 2.44, 2026-09-19) and then dropped
+  # (2026-09-28), and zotero 10.0.4 vs esr-153 fails to build. take zotero from the nixos-26.05
+  # channel instead: zotero 9.0.6 on esr-140.17 (channel head, so should be in the binary cache), and 9.x has the
+  # /connector/saveStandaloneAttachment endpoint the 5.0.151 connector calls (7.0.x does not).
+  # drop this pin once unstable's zotero builds again.
   zoteroNixpkgs =
     import (builtins.fetchTarball {
-      url = "https://github.com/NixOS/nixpkgs/archive/8a2f738d9d1f1d986b5a4cd2fd2061a7127237d7.tar.gz";
-      sha256 = "0fls8p72hjk8zvqw49kfrf2l3ayvpi8sm3zpd5d8l4m2ic4irz5h";
+      url = "https://github.com/NixOS/nixpkgs/archive/6fcc160353f63555b560f25588925133c8f61f2a.tar.gz";
+      sha256 = "sha256-xI8L+UwJLIg75yVJwLPsY+AUEP1teCT3FyuvodyJu2Y=";
     }) {
       inherit (pkgs.stdenv.hostPlatform) system;
     };
   zoteroPkg = zoteroNixpkgs.zotero;
 
-  bbtVer = "7.0.76";
+  # 9.x line (7.0.76 was for zotero 7)
+  bbtVer = "9.0.71";
   bbt = pkgs.fetchurl {
     url = "https://github.com/retorquere/zotero-better-bibtex/releases/download/v${bbtVer}/zotero-better-bibtex-${bbtVer}.xpi";
-    hash = "sha256-4MWwqSoOWPGiuLiZA6BfS24ScDdYhDto+jNF9l0C7kw=";
+    hash = "sha256-v2GhaQ3IorerCb6d4siZhvT7bUlcgkB9ibECsm+6qdU=";
   };
 
   userJs = pkgs.writeText "zotero-user.js" ''
