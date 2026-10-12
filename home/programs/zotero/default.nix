@@ -3,10 +3,31 @@
   lib,
   ...
 }: let
-  bbtVer = "7.0.76";
+  # pinned nixpkgs-unstable snapshot, used only for zotero (7.0.15 in stable lacks the
+  # saveStandaloneAttachment endpoint the connector needs)
+  unstable =
+    import (builtins.fetchTarball {
+      url = "https://github.com/NixOS/nixpkgs/archive/6510408d147d8c5e6d76043e899e9251756f6a75.tar.gz";
+      sha256 = "sha256-XK4KceonkwD8LuMAt/vNrz982mXJM5jeHAxMwsUXXAQ=";
+    }) {
+      inherit (pkgs.stdenv.hostPlatform) system;
+    };
+
+  # zotero 10.0.4 targets Firefox 140 ESR, but nixpkgs builds it against 153, which no longer
+  # ships the AboutTranslations actors. app/scripts/fetch_xulrunner (modify_omni, set -e) tries
+  # to rm them and strip their block from ActorManagerParent.sys.mjs, and aborts; drop those lines
+  zoteroPkg = unstable.zotero.overrideAttrs (old: {
+    postPatch =
+      (old.postPatch or "")
+      + ''
+        sed -i '/AboutTranslations/d' app/scripts/fetch_xulrunner
+      '';
+  });
+
+  bbtVer = "9.0.71";
   bbt = pkgs.fetchurl {
     url = "https://github.com/retorquere/zotero-better-bibtex/releases/download/v${bbtVer}/zotero-better-bibtex-${bbtVer}.xpi";
-    hash = "sha256-4MWwqSoOWPGiuLiZA6BfS24ScDdYhDto+jNF9l0C7kw=";
+    hash = "sha256-v2GhaQ3IorerCb6d4siZhvT7bUlcgkB9ibECsm+6qdU=";
   };
 
   userJs = pkgs.writeText "zotero-user.js" ''
@@ -42,7 +63,7 @@
 
   # replaces `zotero`: swaps the background instance out for the GUI, then back in once it closes
   launcher = pkgs.writeShellScript "zotero" ''
-    real=${pkgs.zotero}/bin/zotero
+    real=${zoteroPkg}/bin/zotero
 
     # a GUI is already open: just hand it the args (e.g. a zotero:// url)
     if ! ${systemctl} --user -q is-active ${unit} && ${pgrep} -u "$UID" -x zotero-bin >/dev/null; then
@@ -55,8 +76,8 @@
   '';
 
   zotero = pkgs.symlinkJoin {
-    name = "zotero-${pkgs.zotero.version}";
-    paths = [pkgs.zotero];
+    name = "zotero-${zoteroPkg.version}";
+    paths = [zoteroPkg];
     postBuild = ''
       rm $out/bin/zotero
       ln -s ${launcher} $out/bin/zotero
@@ -75,7 +96,7 @@ in {
     };
     Service = {
       ExecCondition = "${noGui}";
-      ExecStart = "${pkgs.xvfb-run}/bin/xvfb-run -a -s '-screen 0 1280x800x24' ${pkgs.zotero}/bin/zotero -no-remote";
+      ExecStart = "${pkgs.xvfb-run}/bin/xvfb-run -a -s '-screen 0 1280x800x24' ${zoteroPkg}/bin/zotero -no-remote";
       Restart = "on-failure";
       RestartSec = 10;
       TimeoutStopSec = 10;
