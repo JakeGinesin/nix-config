@@ -90,20 +90,7 @@ super + {grave,Tab}
 #	bspc node {older,newer} -f; \
 #	bspc wm -h on
 
-# focus or send to the given desktop
-super + {_,shift + }{1-9,0}
-	bspc {desktop -f,node -d} '^{1-9,10}'
 
-super + alt + {_,shift + }{1,2,3,4,5,6,7,8,9,0}
-  bspc {desktop -f, node -d} '{11,12,13,14,15,16,17,18,19,20}'
-
-# swap between desktops
-
-XF86WakeUp + super; {1,2,3,4,5,6,7,8,9,0}
-  swap-desktop '{1,2,3,4,5,6,7,8,9,10}'
-
-XF86WakeUp + super + alt; {1,2,3,4,5,6,7,8,9,0}
-  swap-desktop.sh '{11,12,13,14,15,16,17,18,19,20}'
 
 
 # preselect
@@ -139,6 +126,9 @@ alt + {Left,Down,Up,Right}
 alt + shift + {Left,Down,Up,Right}
 	bspc node -z {right -40 0,top 0 40,bottom 0 -40,left 40 0}
 
+super + shift + {d,a}
+    bspc node @/ -C {forward,backward}
+
 alt + shift + w 
   rfkill unblock all | iwctl station wlan0 scan | iwctl station wlan0 get-networks 
 
@@ -158,11 +148,7 @@ super + {shift} + {f}
     firefox --private-window
     
 
-super + {Left,Right}
-    bspc desktop -f {prev,next}
 
-ctrl + super + {Left,Right}
-    fast-shift {left,right}
 
 super + {shift} + {d}
     pkill -f legcord
@@ -170,12 +156,83 @@ super + {shift} + {d}
 super + {shift} + {h}
     pkill -f slack
 
-ctrl + super + bracket{left,right}
-    fast-shift {left,right}
+# ===== desktop items =====
+# super + {Left,Right}
+    # bspc desktop -f {prev,next}
 
+# ctrl + super + {Left,Right}
+    # fast-shift {left,right}
+
+# ctrl + super + bracket{left,right}
+    # fast-shift {left,right}
+
+# super + bracket{left,right}
+	# bspc desktop -f {prev,next}.local
+
+# # focus or send to the given desktop
+# super + {_,shift + }{1-9,0}
+	# bspc {desktop -f,node -d} '^{1-9,10}'
+
+# super + alt + {_,shift + }{1,2,3,4,5,6,7,8,9,0}
+  # bspc {desktop -f, node -d} '{11,12,13,14,15,16,17,18,19,20}'
+
+# # swap between desktops
+
+# XF86WakeUp + super; {1,2,3,4,5,6,7,8,9,0}
+  # swap-desktop '{1,2,3,4,5,6,7,8,9,10}'
+
+# XF86WakeUp + super + alt; {1,2,3,4,5,6,7,8,9,0}
+  # swap-desktop.sh '{11,12,13,14,15,16,17,18,19,20}'
+
+# Horizontal movement within current row: super + [1-5] (shift to send window)
+super + {_,shift + }{1-5}
+    bspwm-grid col {1-5} {focus,send}
+
+# Vertical movement between rows: super + Up/Down (shift to send window)
+super + {_,shift + }{Up,Down}
+    bspwm-grid step-row {up,down} {focus,send}
+
+# Step left/right within current row
+super + {Left,Right}
+    bspwm-grid step-col {left,right} focus
 
 super + bracket{left,right}
-	bspc desktop -f {prev,next}.local
+    bspwm-grid step-col {left,right} focus
+
+# Jump to row [1-10] via super + j + [1-9,0]
+# (Supports both holding super throughout or releasing super after j)
+super + j ; {_,super + }{1,2,3,4,5,6,7,8,9,0}
+    bspwm-grid row {1,2,3,4,5,6,7,8,9,10} focus
+
+# Move focused window to row [1-10]: super + j, then shift + [1-9,0]
+super + j ; {_,super + }shift + {1,2,3,4,5,6,7,8,9,0}
+    bspwm-grid row {1,2,3,4,5,6,7,8,9,10} send
+
+# Fallback if you keep super + {j,k,i,l} for window focus: double-tap j for west
+super + j ; {_,super + }j
+    bspc node -f west.local
+
+# Focus/swap north, south, east (j removed from single-chord to avoid sxhkd conflict)
+super + {_,shift + }{k,i,l}
+    bspc node -{f,s} {south,north,east}.local
+
+super + shift + j
+    bspc node -s west.local
+
+# Grid overview (10x5 Rofi matrix)
+super + e
+    bspwm-grid overview
+
+# Fast-shift to prev/next occupied desktop
+ctrl + super + {Left,Right}
+    bspwm-grid fast-shift {left,right}
+
+ctrl + super + bracket{left,right}
+    bspwm-grid fast-shift {left,right}
+
+# Swap current desktop with column [1-5] in current row
+XF86WakeUp + super ; {1-5}
+    bspwm-grid col {1-5} swap
 
 
 # super + {o}
@@ -247,9 +304,6 @@ Print
 
 super + shift + s 
     flameshot gui
-
-super + shift + {d,a}
-    bspc node @/ -C {forward,backward}
 
 # audio
 XF86AudioRaiseVolume

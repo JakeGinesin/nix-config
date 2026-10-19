@@ -17,7 +17,7 @@ PRIMARY="$(xrandr --query | awk '/ connected primary/{print $1; exit}')"
 
 xrandr --output "$PRIMARY" --scale 1x1 --auto 
 
-bspc monitor "$PRIMARY" -d 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+# bspc monitor "$PRIMARY" -d 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
 
 bspc config border_width        2
 bspc config window_gap          2
@@ -28,11 +28,19 @@ bspc config gapless_monocle      true
 bspc config remove_disabled_monitors      true
 bspc config merge_overlapping_monitors    true
 # bspc config merge_overlapping_monitors true
-bspc rule -a Zathura state=tiled
-bspc rule -a "Zotero" -o desktop="19" focus=off
 
-bspc rule -a Gimp desktop='^8' state=floating follow=on
-bspc rule -a Chromium desktop='^2'
+bspwm-grid init "$PRIMARY" 10
+
+bspc rule -a Zathura state=tiled
+bspc rule -a "Zotero" -o desktop="10_4" focus=off
+bspc rule -a Gimp desktop="2_3" state=floating follow=on
+bspc rule -a Chromium desktop="1_2"
+
+# bspc rule -a Zathura state=tiled
+# bspc rule -a "Zotero" -o desktop="19" focus=off
+# bspc rule -a Gimp desktop='^8' state=floating follow=on
+# bspc rule -a Chromium desktop='^2'
+
 bspc rule -a mplayer2 state=floating
 bspc rule -a Kupfer.py focus=on
 bspc rule -a Screenkey manage=off
