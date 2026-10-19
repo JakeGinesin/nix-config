@@ -282,20 +282,20 @@ super + {alt} + {c}
 super + {p}
   sh nf todo
 
-super + {m}
-  sh /home/synchronous/.scripts/vimwiki/open-learning.sh
+# super + {m}
+  # sh /home/synchronous/.scripts/vimwiki/open-learning.sh
 
 # super + {b}
 #   sh /home/synchronous/.budgeting/open_budget.sh
 
 
 # nnn
-super + {n}
-  sh /home/synchronous/.scripts/nnn/launch.sh
+# super + {n}
+  # sh /home/synchronous/.scripts/nnn/launch.sh
 
 # nnn + journal
-super + {ctrl} + {n}
-  sh /home/synchronous/.scripts/nnn/launch-journal.sh
+# super + {ctrl} + {n}
+  # sh /home/synchronous/.scripts/nnn/launch-journal.sh
 
 # screenshot stuff
 Print
