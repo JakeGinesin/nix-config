@@ -3,6 +3,21 @@
 ROWS=10
 COLS=5
 
+init_grid() {
+    local mon="${1:-$(bspc query -M -m focused --names)}"
+    local max_r="${2:-$ROWS}"
+    local desks=()
+    for ((r=1; r<=max_r; r++)); do
+        for ((c=1; c<=COLS; c++)); do
+            desks+=("${r}_${c}")
+        done
+    done
+    bspc monitor "$mon" -d "${desks[@]}"
+    for old in $(seq 1 20) Desktop; do
+        bspc desktop "$old" -r 2>/dev/null
+    done
+}
+
 get_coords() {
     local cur
     cur=$(bspc query -D -d focused --names)
@@ -10,16 +25,17 @@ get_coords() {
         ROW="${BASH_REMATCH[1]}"
         COL="${BASH_REMATCH[2]}"
     else
+        init_grid
         ROW=1
         COL=1
     fi
 }
 
 apply_target() {
-    local target="$1" mode="${2:-focus}"
+    local mode="$1" target="$2"
     case "$mode" in
-        focus) bspc desktop -f "$target" ;;
-        send)  bspc node -d "$target" ;;
+        focus)  bspc desktop -f "$target" ;;
+        send)   bspc node -d "$target" ;;
         follow) bspc node -d "$target" --follow ;;
         swap)
             local cur
@@ -35,93 +51,60 @@ apply_target() {
 
 case "$1" in
     init)
-        # Usage: bspwm-grid init [MONITOR] [MAX_ROW]
-        mon="${2:-$(bspc query -M -m focused --names)}"
-        max_r="${3:-$ROWS}"
-        desks=()
-        for ((r=1; r<=max_r; r++)); do
-            for ((c=1; c<=COLS; c++)); do
-                desks+=("${r}_${c}")
-            done
-        done
-        bspc monitor "$mon" -d "${desks[@]}"
+        init_grid "$2" "$3"
         ;;
 
-    col)
-        # Usage: bspwm-grid col <1-5> [focus|send|swap]
+    col-focus|col-send|col-swap)
         get_coords
-        apply_target "${ROW}_${2}" "${3:-focus}"
+        apply_target "${1#col-}" "${ROW}_${2}"
         ;;
 
-    row)
-        # Usage: bspwm-grid row <1-10> [focus|send|swap]
+    row-focus|row-send|row-swap)
         get_coords
-        apply_target "${2}_${COL}" "${3:-focus}"
+        apply_target "${1#row-}" "${2}_${COL}"
         ;;
 
-    step-row)
-        # Usage: bspwm-grid step-row <up|down> [focus|send]
+    step-row-focus|step-row-send)
         get_coords
         if [[ "$2" == "up" ]]; then
             next_r=$(( (ROW - 2 + ROWS) % ROWS + 1 ))
         else
             next_r=$(( ROW % ROWS + 1 ))
         fi
-        apply_target "${next_r}_${COL}" "${3:-focus}"
+        apply_target "${1#step-row-}" "${next_r}_${COL}"
         ;;
 
-    step-col)
-        # Usage: bspwm-grid step-col <left|right> [focus|send]
+    step-col-focus|step-col-send)
         get_coords
         if [[ "$2" == "left" ]]; then
             next_c=$(( (COL - 2 + COLS) % COLS + 1 ))
         else
             next_c=$(( COL % COLS + 1 ))
         fi
-        apply_target "${ROW}_${next_c}" "${3:-focus}"
+        apply_target "${1#step-col-}" "${ROW}_${next_c}"
         ;;
 
     fast-shift)
-        # Jump to prev/next occupied desktop in current row (or wrap across grid)
-        # Usage: bspwm-grid fast-shift <left|right>
+        # Only cycle occupied desktops within the current row [ROW]
         get_coords
-        cur="${ROW}_${COL}"
-        mapfile -t occupied < <(bspc query -D -d .occupied --names)
-        [[ ${#occupied[@]} -eq 0 ]] && exit 0
-
-        # Build ordered list of all 50 desktops
-        all=()
-        for ((r=1; r<=ROWS; r++)); do
-            for ((c=1; c<=COLS; c++)); do
-                all+=("${r}_${c}")
-            done
-        done
-
-        idx=$(( (ROW - 1) * COLS + (COL - 1) ))
-        total=$(( ROWS * COLS ))
         step=$([[ "$2" == "left" ]] && echo -1 || echo 1)
-
-        for ((i=1; i<total; i++)); do
-            cand_idx=$(( (idx + i * step + total) % total ))
-            cand="${all[$cand_idx]}"
-            for occ in "${occupied[@]}"; do
-                if [[ "$cand" == "$occ" ]]; then
-                    bspc desktop -f "$cand"
-                    exit 0
-                fi
-            done
+        for ((i=1; i<COLS; i++)); do
+            cand_c=$(( (COL - 1 + i * step + COLS) % COLS + 1 ))
+            cand="${ROW}_${cand_c}"
+            if [[ -n "$(bspc query -N -d "$cand" -n .window)" ]]; then
+                bspc desktop -f "$cand"
+                exit 0
+            fi
         done
         ;;
 
     polybar)
-        # Streams "[row]  1  2  3  4  5" to Polybar
         render_bar() {
             get_coords
             local occ_list urg_list
             occ_list=" $(bspc query -D -d .occupied --names | tr '\n' ' ') "
             urg_list=" $(bspc query -D -d .urgent --names | tr '\n' ' ') "
 
-            # Row indicator [n] in theme color
             local out="%{F#89adfa}[${ROW}]%{F-} "
 
             for ((c=1; c<=COLS; c++)); do
@@ -130,16 +113,12 @@ case "$1" in
                 local end_click="%{A}"
 
                 if [[ "$c" -eq "$COL" ]]; then
-                    # Focused column: white text + theme underline
                     out+="${click}%{F#ffffff}%{u#89adfa}%{+u}  ${c}  %{-u}%{F-}${end_click}"
                 elif [[ "$urg_list" == *" $d "* ]]; then
-                    # Urgent column
                     out+="${click}%{B#9b0a20}%{F#ffffff}  ${c}  %{B-}%{F-}${end_click}"
                 elif [[ "$occ_list" == *" $d "* ]]; then
-                    # Occupied column
                     out+="${click}%{F#ffffff}  ${c}  %{F-}${end_click}"
                 else
-                    # Empty column (dimmed; set to out+="" if you want empty hidden)
                     out+="${click}%{F#555555}  ${c}  %{F-}${end_click}"
                 fi
             done
@@ -153,17 +132,9 @@ case "$1" in
         ;;
 
     overview)
-        # 10x5 interactive Rofi spatial grid
+        # Desktop-only 10x5 grid overview
         get_coords
-        declare -A win_summary
-        for d in $(bspc query -D -d .occupied --names); do
-            classes=()
-            for nid in $(bspc query -N -d "$d" -n .window); do
-                cls=$(xprop -id "$nid" WM_CLASS 2>/dev/null | awk -F'"' '{print $4}')
-                [[ -n "$cls" ]] && classes+=("$cls")
-            done
-            win_summary["$d"]="${classes[*]}"
-        done
+        occ_list=" $(bspc query -D -d .occupied --names | tr '\n' ' ') "
 
         entries=()
         active_indices=()
@@ -173,9 +144,8 @@ case "$1" in
         for ((r=1; r<=ROWS; r++)); do
             for ((c=1; c<=COLS; c++)); do
                 d="${r}_${c}"
-                summary="${win_summary[$d]:--}"
-                entries+=("[${r}:${c}] ${summary}")
-                [[ -n "${win_summary[$d]}" ]] && active_indices+=("$idx")
+                entries+=("[${r}] ${c}")
+                [[ "$occ_list" == *" $d "* ]] && active_indices+=("$idx")
                 ((idx++))
             done
         done
@@ -186,13 +156,13 @@ case "$1" in
         fi
 
         choice=$(printf '%s\n' "${entries[@]}" | rofi -dmenu -i \
-            -p "Workspace Grid" \
+            -p "Desktops" \
             -selected-row "$selected_idx" \
             -u "$selected_idx" \
             "${active_arg[@]}" \
-            -theme-str 'window { width: 80%; } listview { columns: 5; lines: 10; flow: horizontal; fixed-columns: true; } element-text { horizontal-align: 0.0; }')
+            -theme-str 'window { width: 45%; } listview { columns: 5; lines: 10; flow: horizontal; fixed-columns: true; } element-text { horizontal-align: 0.5; }')
 
-        if [[ "$choice" =~ ^\[([0-9]+):([0-9]+)\] ]]; then
+        if [[ "$choice" =~ ^\[([0-9]+)\]\ ([0-9]+)$ ]]; then
             bspc desktop -f "${BASH_REMATCH[1]}_${BASH_REMATCH[2]}"
         fi
         ;;

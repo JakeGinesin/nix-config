@@ -184,31 +184,33 @@ super + {shift} + {h}
 # XF86WakeUp + super + alt; {1,2,3,4,5,6,7,8,9,0}
   # swap-desktop.sh '{11,12,13,14,15,16,17,18,19,20}'
 
-# Horizontal movement in current workspace row: super + 1..5
+# Horizontal movement in current row: super + 1..5
 super + {_,shift + }{1-5}
-    bspwm-grid col {1-5} {focus,send}
+    bspwm-grid {col-focus,col-send} {1-5}
 
-# Vertical movement between workspace rows: super + Up/Down
+# Vertical movement between rows: super + Up/Down
 super + {_,shift + }{Up,Down}
-    bspwm-grid step-row {up,down} {focus,send}
+    bspwm-grid {step-row-focus,step-row-send} {up,down}
 
 # Step left/right within current row
 super + {Left,Right}
-    bspwm-grid step-col {left,right} focus
+    bspwm-grid step-col-focus {left,right}
 
 super + bracket{left,right}
-    bspwm-grid step-col {left,right} focus
+    bspwm-grid step-col-focus {left,right}
 
-# Jump to workspace row 1..10: super + j, then 1..0
-super + j ; {_,super + }{1,2,3,4,5,6,7,8,9,0}
-    bspwm-grid row {1,2,3,4,5,6,7,8,9,10} focus
+# Jump/send to row 1..10 (works whether you release or hold super after j)
+super + j ; {_,shift + }{1-9,0}
+    bspwm-grid {row-focus,row-send} {1-9,10}
 
-# Send window to workspace row 1..10: super + j, then shift + 1..0
-super + j ; {_,super + }shift + {1,2,3,4,5,6,7,8,9,0}
-    bspwm-grid row {1,2,3,4,5,6,7,8,9,10} send
+super + j ; super + {_,shift + }{1-9,0}
+    bspwm-grid {row-focus,row-send} {1-9,10}
 
-# Focus west fallback (since super + j starts the row chord)
-super + j ; {_,super + }j
+# Focus west fallback (double-tap j)
+super + j ; j
+    bspc node -f west.local
+
+super + j ; super + j
     bspc node -f west.local
 
 super + {_,shift + }{k,i,l}
@@ -228,6 +230,9 @@ ctrl + super + {Left,Right}
 ctrl + super + bracket{left,right}
     bspwm-grid fast-shift {left,right}
 
+# Swap current desktop with column 1..5 in current row
+XF86WakeUp + super ; {1-5}
+    bspwm-grid col-swap {1-5}
 
 # super + {o}
 #    obsidian
