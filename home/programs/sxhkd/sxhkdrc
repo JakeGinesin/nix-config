@@ -184,11 +184,11 @@ super + {shift} + {h}
 # XF86WakeUp + super + alt; {1,2,3,4,5,6,7,8,9,0}
   # swap-desktop.sh '{11,12,13,14,15,16,17,18,19,20}'
 
-# Horizontal movement within current row: super + [1-5] (shift to send window)
+# Horizontal movement in current workspace row: super + 1..5
 super + {_,shift + }{1-5}
     bspwm-grid col {1-5} {focus,send}
 
-# Vertical movement between rows: super + Up/Down (shift to send window)
+# Vertical movement between workspace rows: super + Up/Down
 super + {_,shift + }{Up,Down}
     bspwm-grid step-row {up,down} {focus,send}
 
@@ -199,40 +199,34 @@ super + {Left,Right}
 super + bracket{left,right}
     bspwm-grid step-col {left,right} focus
 
-# Jump to row [1-10] via super + j + [1-9,0]
-# (Supports both holding super throughout or releasing super after j)
+# Jump to workspace row 1..10: super + j, then 1..0
 super + j ; {_,super + }{1,2,3,4,5,6,7,8,9,0}
     bspwm-grid row {1,2,3,4,5,6,7,8,9,10} focus
 
-# Move focused window to row [1-10]: super + j, then shift + [1-9,0]
+# Send window to workspace row 1..10: super + j, then shift + 1..0
 super + j ; {_,super + }shift + {1,2,3,4,5,6,7,8,9,0}
     bspwm-grid row {1,2,3,4,5,6,7,8,9,10} send
 
-# Fallback if you keep super + {j,k,i,l} for window focus: double-tap j for west
+# Focus west fallback (since super + j starts the row chord)
 super + j ; {_,super + }j
     bspc node -f west.local
 
-# Focus/swap north, south, east (j removed from single-chord to avoid sxhkd conflict)
 super + {_,shift + }{k,i,l}
     bspc node -{f,s} {south,north,east}.local
 
 super + shift + j
     bspc node -s west.local
 
-# Grid overview (10x5 Rofi matrix)
+# Desktop-only overview
 super + e
     bspwm-grid overview
 
-# Fast-shift to prev/next occupied desktop
+# Fast-shift strictly within current row [n]
 ctrl + super + {Left,Right}
     bspwm-grid fast-shift {left,right}
 
 ctrl + super + bracket{left,right}
     bspwm-grid fast-shift {left,right}
-
-# Swap current desktop with column [1-5] in current row
-XF86WakeUp + super ; {1-5}
-    bspwm-grid col {1-5} swap
 
 
 # super + {o}
