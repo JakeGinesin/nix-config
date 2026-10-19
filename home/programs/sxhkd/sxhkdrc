@@ -200,23 +200,23 @@ super + bracket{left,right}
     bspwm-grid step-col-focus {left,right}
 
 # Jump/send to row 1..10 (works whether you release or hold super after j)
-super + j ; {_,shift + }{1-9,0}
+super + n ; {_,shift + }{1-9,0}
     bspwm-grid {row-focus,row-send} {1-9,10}
 
-super + j ; super + {_,shift + }{1-9,0}
+super + n ; super + {_,shift + }{1-9,0}
     bspwm-grid {row-focus,row-send} {1-9,10}
 
 # Focus west fallback (double-tap j)
-super + j ; j
+super + n ; n
     bspc node -f west.local
 
-super + j ; super + j
+super + n ; super + n
     bspc node -f west.local
 
 super + {_,shift + }{k,i,l}
     bspc node -{f,s} {south,north,east}.local
 
-super + shift + j
+super + shift + n
     bspc node -s west.local
 
 # Desktop-only overview
