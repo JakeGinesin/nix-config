@@ -77,9 +77,9 @@ case "$1" in
     step-col-focus|step-col-send)
         get_coords
         if [[ "$2" == "left" ]]; then
-            next_c=$(( COL % COLS + 1 ))
-        else
             next_c=$(( (COL - 2 + COLS) % COLS + 1 ))
+        else
+            next_c=$(( COL % COLS + 1 ))
         fi
         apply_target "${1#step-col-}" "${ROW}_${next_c}"
         ;;
