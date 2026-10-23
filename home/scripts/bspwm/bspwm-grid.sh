@@ -1,20 +1,27 @@
 #!/usr/bin/env bash
+# bspwm-grid: a ROWS x COLS desktop grid for bspwm.
+#
+# Each row remembers the column it was last on. Nothing runs in the
+# background for this: the memory is written when you leave a row through
+# this script, and by the polybar loop, which already wakes on focus changes.
 
 ROWS=10
 COLS=5
 
+# One tiny file per row, e.g. $STATE_DIR/3 contains "4"
+STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/bspwm-grid-$UID"
+
 init_grid() {
-    local mon="${1:-$(bspc query -M -m focused --names)}"
-    local max_r="${2:-$ROWS}"
-    local desks=()
+    local mon="${1:-}" max_r="${2:-$ROWS}" desks=() r c old
+    [[ -n "$mon" ]] || mon=$(bspc query -M -m focused --names)
     for ((r=1; r<=max_r; r++)); do
         for ((c=1; c<=COLS; c++)); do
             desks+=("${r}_${c}")
         done
     done
     bspc monitor "$mon" -d "${desks[@]}"
-    for old in $(seq 1 20) Desktop; do
-        bspc desktop "$old" -r 2>/dev/null
+    for old in {1..20} Desktop; do
+        bspc desktop "$old" -r 2>/dev/null || true
     done
 }
 
@@ -31,16 +38,43 @@ get_coords() {
     fi
 }
 
+# remember ROW COL: row ROW was last on column COL (shell builtins only)
+remember() {
+    [[ -d "$STATE_DIR" ]] || mkdir -p "$STATE_DIR"
+    echo "$2" > "$STATE_DIR/$1"
+}
+
+# recall ROW: print the column ROW was last on, or the current column
+recall() {
+    local c=""
+    if [[ -r "$STATE_DIR/$1" ]]; then
+        read -r c < "$STATE_DIR/$1" || true
+    fi
+    if [[ "$c" =~ ^[1-9][0-9]*$ ]] && (( c <= COLS )); then
+        echo "$c"
+    else
+        echo "$COL"
+    fi
+}
+
+# " name1 name2 " for desktops matching a descriptor (bspc fails on no match)
+names_matching() {
+    local list
+    list=$(bspc query -D -d "$1" --names 2>/dev/null || true)
+    echo " ${list//$'\n'/ } "
+}
+
 apply_target() {
-    local mode="$1" target="$2"
+    local mode="$1" target="$2" cur
     case "$mode" in
         focus)  bspc desktop -f "$target" ;;
         send)   bspc node -d "$target" ;;
         follow) bspc node -d "$target" --follow ;;
         swap)
-            local cur
             cur=$(bspc query -D -d focused --names)
-            [[ "$target" == "$cur" ]] && exit 0
+            if [[ "$target" == "$cur" ]]; then
+                exit 0
+            fi
             bspc desktop "$target" -n tmp_swap
             bspc desktop "$cur" -s tmp_swap
             bspc desktop "$cur" -n "$target"
@@ -49,34 +83,41 @@ apply_target() {
     esac
 }
 
-case "$1" in
+case "${1:-}" in
     init)
-        init_grid "$2" "$3"
+        init_grid "${2:-}" "${3:-}"
         ;;
 
     col-focus|col-send|col-swap)
         get_coords
-        apply_target "${1#col-}" "${ROW}_${2}"
+        apply_target "${1#col-}" "${ROW}_${2:?missing column}"
         ;;
 
     row-focus|row-send|row-swap)
         get_coords
-        apply_target "${1#row-}" "${2}_${COL}"
+        if [[ "$1" == "row-swap" ]]; then
+            # Swapping stays positional: same column in the target row
+            apply_target swap "${2:?missing row}_${COL}"
+        else
+            remember "$ROW" "$COL"
+            apply_target "${1#row-}" "${2:?missing row}_$(recall "$2")"
+        fi
         ;;
 
     step-row-focus|step-row-send)
         get_coords
-        if [[ "$2" == "up" ]]; then
+        if [[ "${2:-}" == "up" ]]; then
             next_r=$(( ROW % ROWS + 1 ))
         else
             next_r=$(( (ROW - 2 + ROWS) % ROWS + 1 ))
         fi
-        apply_target "${1#step-row-}" "${next_r}_${COL}"
+        remember "$ROW" "$COL"
+        apply_target "${1#step-row-}" "${next_r}_$(recall "$next_r")"
         ;;
 
     step-col-focus|step-col-send)
         get_coords
-        if [[ "$2" == "left" ]]; then
+        if [[ "${2:-}" == "left" ]]; then
             next_c=$(( (COL - 2 + COLS) % COLS + 1 ))
         else
             next_c=$(( COL % COLS + 1 ))
@@ -87,11 +128,10 @@ case "$1" in
     fast-shift)
         # Only cycle occupied desktops within the current row [ROW]
         get_coords
-        step=$([[ "$2" == "left" ]] && echo -1 || echo 1)
+        if [[ "${2:-}" == "left" ]]; then step=-1; else step=1; fi
         for ((i=1; i<COLS; i++)); do
-            cand_c=$(( (COL - 1 + i * step + COLS) % COLS + 1 ))
-            cand="${ROW}_${cand_c}"
-            if [[ -n "$(bspc query -N -d "$cand" -n .window)" ]]; then
+            cand="${ROW}_$(( (COL - 1 + i * step + COLS) % COLS + 1 ))"
+            if [[ -n "$(bspc query -N -d "$cand" -n .window 2>/dev/null)" ]]; then
                 bspc desktop -f "$cand"
                 exit 0
             fi
@@ -99,18 +139,24 @@ case "$1" in
         ;;
 
     polybar)
-        render_bar() {
-            get_coords
-            local occ_list urg_list
-            occ_list=" $(bspc query -D -d .occupied --names | tr '\n' ' ') "
-            urg_list=" $(bspc query -D -d .urgent --names | tr '\n' ' ') "
+        # Absolute path so click actions work even when polybar runs with a
+        # minimal PATH (e.g. home-manager's polybar service)
+        BSPC=$(command -v bspc)
 
-            local out="%{F#89adfa}[${ROW}]%{F-} "
+        render_bar() {
+            local occ_list urg_list out c d click end_click
+            get_coords
+            # Free piggyback: this loop already wakes on every focus change
+            remember "$ROW" "$COL"
+            occ_list=$(names_matching .occupied)
+            urg_list=$(names_matching .urgent)
+
+            out="%{F#89adfa}[${ROW}]%{F-} "
 
             for ((c=1; c<=COLS; c++)); do
-                local d="${ROW}_${c}"
-                local click="%{A1:bspc desktop -f $d:}"
-                local end_click="%{A}"
+                d="${ROW}_${c}"
+                click="%{A1:$BSPC desktop -f $d:}"
+                end_click="%{A}"
 
                 if [[ "$c" -eq "$COL" ]]; then
                     out+="${click}%{F#ffffff}%{u#89adfa}%{+u}  ${c}  %{-u}%{F-}${end_click}"
@@ -132,9 +178,9 @@ case "$1" in
         ;;
 
     overview)
-        # Desktop-only 10x5 grid overview
+        # Desktop-only grid overview
         get_coords
-        occ_list=" $(bspc query -D -d .occupied --names | tr '\n' ' ') "
+        occ_list=$(names_matching .occupied)
 
         entries=()
         active_indices=()
@@ -143,15 +189,16 @@ case "$1" in
         idx=0
         for ((r=1; r<=ROWS; r++)); do
             for ((c=1; c<=COLS; c++)); do
-                d="${r}_${c}"
                 entries+=("[${r}] ${c}")
-                [[ "$occ_list" == *" $d "* ]] && active_indices+=("$idx")
-                ((idx++))
+                if [[ "$occ_list" == *" ${r}_${c} "* ]]; then
+                    active_indices+=("$idx")
+                fi
+                idx=$(( idx + 1 ))
             done
         done
 
         active_arg=()
-        if [[ ${#active_indices[@]} -gt 0 ]]; then
+        if (( ${#active_indices[@]} > 0 )); then
             IFS=,; active_arg=(-a "${active_indices[*]}"); unset IFS
         fi
 
@@ -160,10 +207,17 @@ case "$1" in
             -selected-row "$selected_idx" \
             -u "$selected_idx" \
             "${active_arg[@]}" \
-            -theme-str 'window { width: 45%; } listview { columns: 5; lines: 10; flow: horizontal; fixed-columns: true; } element-text { horizontal-align: 0.5; }')
+            -theme-str 'window { width: 45%; } listview { columns: 5; lines: 10; flow: horizontal; fixed-columns: true; } element-text { horizontal-align: 0.5; }') \
+            || exit 0
 
         if [[ "$choice" =~ ^\[([0-9]+)\]\ ([0-9]+)$ ]]; then
+            remember "$ROW" "$COL"
             bspc desktop -f "${BASH_REMATCH[1]}_${BASH_REMATCH[2]}"
         fi
+        ;;
+
+    *)
+        echo "usage: bspwm-grid {init|col-*|row-*|step-row-*|step-col-*|fast-shift|polybar|overview} [arg]" >&2
+        exit 1
         ;;
 esac
