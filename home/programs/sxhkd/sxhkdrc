@@ -230,8 +230,10 @@ super + e
     bspwm-grid overview
 
 # Fast-shift strictly within current row [n]
-ctrl + super + {Left,Right}
-    bspwm-grid fast-shift {left,right}
+# ctrl + super + {Left,Right}
+    # bspwm-grid fast-shift {left,right}
+ctrl + super + {Left,Right,Up,Down}
+    bspwm-grid fast-shift {left,right,up,down}
 
 ctrl + super + bracket{left,right}
     bspwm-grid fast-shift {left,right}

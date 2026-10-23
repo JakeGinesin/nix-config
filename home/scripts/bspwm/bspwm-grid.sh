@@ -44,7 +44,8 @@ remember() {
     echo "$2" > "$STATE_DIR/$1"
 }
 
-# recall ROW: print the column ROW was last on, or the current column
+# recall ROW [FALLBACK]: print the column ROW was last on,
+# else FALLBACK (default: the current column)
 recall() {
     local c=""
     if [[ -r "$STATE_DIR/$1" ]]; then
@@ -53,7 +54,7 @@ recall() {
     if [[ "$c" =~ ^[1-9][0-9]*$ ]] && (( c <= COLS )); then
         echo "$c"
     else
-        echo "$COL"
+        echo "${2:-$COL}"
     fi
 }
 
@@ -62,6 +63,19 @@ names_matching() {
     local list
     list=$(bspc query -D -d "$1" --names 2>/dev/null || true)
     echo " ${list//$'\n'/ } "
+}
+
+# first_occupied ROW: set FIRST_COL to ROW's first occupied column,
+# or fail if the row is empty. Reads OCC_LIST (from names_matching).
+first_occupied() {
+    local c
+    for ((c=1; c<=COLS; c++)); do
+        if [[ "$OCC_LIST" == *" ${1}_${c} "* ]]; then
+            FIRST_COL=$c
+            return 0
+        fi
+    done
+    return 1
 }
 
 apply_target() {
@@ -126,16 +140,34 @@ case "${1:-}" in
         ;;
 
     fast-shift)
-        # Only cycle occupied desktops within the current row [ROW]
+        # left/right: next occupied desktop within the current row
+        # up/down:    next row with anything in it, landing on that row's
+        #             remembered column (else its first occupied one)
         get_coords
-        if [[ "${2:-}" == "left" ]]; then step=-1; else step=1; fi
-        for ((i=1; i<COLS; i++)); do
-            cand="${ROW}_$(( (COL - 1 + i * step + COLS) % COLS + 1 ))"
-            if [[ -n "$(bspc query -N -d "$cand" -n .window 2>/dev/null)" ]]; then
-                bspc desktop -f "$cand"
-                exit 0
-            fi
-        done
+        OCC_LIST=$(names_matching .occupied)
+        case "${2:-}" in
+            left|right)
+                if [[ "$2" == "left" ]]; then step=-1; else step=1; fi
+                for ((i=1; i<COLS; i++)); do
+                    cand="${ROW}_$(( (COL - 1 + i * step + COLS) % COLS + 1 ))"
+                    if [[ "$OCC_LIST" == *" $cand "* ]]; then
+                        bspc desktop -f "$cand"
+                        exit 0
+                    fi
+                done
+                ;;
+            up|down)
+                if [[ "$2" == "down" ]]; then step=-1; else step=1; fi
+                for ((i=1; i<ROWS; i++)); do
+                    r=$(( (ROW - 1 + i * step + ROWS) % ROWS + 1 ))
+                    if first_occupied "$r"; then
+                        remember "$ROW" "$COL"
+                        bspc desktop -f "${r}_$(recall "$r" "$FIRST_COL")"
+                        exit 0
+                    fi
+                done
+                ;;
+        esac
         ;;
 
     polybar)
@@ -178,19 +210,27 @@ case "${1:-}" in
         ;;
 
     overview)
-        # Desktop-only grid overview
+        # Grid overview of rows in use, plus the row you're on
         get_coords
-        occ_list=$(names_matching .occupied)
+        OCC_LIST=$(names_matching .occupied)
 
         entries=()
         active_indices=()
-        selected_idx=$(( (ROW - 1) * COLS + (COL - 1) ))
+        selected_idx=0
+        shown_rows=0
 
         idx=0
         for ((r=1; r<=ROWS; r++)); do
+            if (( r != ROW )) && ! first_occupied "$r"; then
+                continue
+            fi
+            shown_rows=$(( shown_rows + 1 ))
             for ((c=1; c<=COLS; c++)); do
                 entries+=("[${r}] ${c}")
-                if [[ "$occ_list" == *" ${r}_${c} "* ]]; then
+                if (( r == ROW && c == COL )); then
+                    selected_idx=$idx
+                fi
+                if [[ "$OCC_LIST" == *" ${r}_${c} "* ]]; then
                     active_indices+=("$idx")
                 fi
                 idx=$(( idx + 1 ))
@@ -207,7 +247,7 @@ case "${1:-}" in
             -selected-row "$selected_idx" \
             -u "$selected_idx" \
             "${active_arg[@]}" \
-            -theme-str 'window { width: 45%; } listview { columns: 5; lines: 10; flow: horizontal; fixed-columns: true; } element-text { horizontal-align: 0.5; }') \
+            -theme-str "window { width: 45%; } listview { columns: ${COLS}; lines: ${shown_rows}; flow: horizontal; fixed-columns: true; } element-text { horizontal-align: 0.5; }") \
             || exit 0
 
         if [[ "$choice" =~ ^\[([0-9]+)\]\ ([0-9]+)$ ]]; then
@@ -217,7 +257,7 @@ case "${1:-}" in
         ;;
 
     *)
-        echo "usage: bspwm-grid {init|col-*|row-*|step-row-*|step-col-*|fast-shift|polybar|overview} [arg]" >&2
+        echo "usage: bspwm-grid {init|col-*|row-*|step-row-*|step-col-*|fast-shift {left|right|up|down}|polybar|overview} [arg]" >&2
         exit 1
         ;;
 esac
