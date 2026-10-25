@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# bspwm-grid: a ROWS x COLS desktop grid for bspwm.
+# bspwm-grid: a ROWS x COLS desktop grid for bspwm
 #
 # Each row remembers the column it was last on. Nothing runs in the
-# background for this: the memory is written when you leave a row through
-# this script, and by the polybar loop, which already wakes on focus changes.
+# background for this.. the memory is written when you leave a row through
+# this script, and by the polybar loop, which already tries to wake on focus change
 
 ROWS=10
 COLS=5
@@ -38,13 +38,13 @@ get_coords() {
     fi
 }
 
-# remember ROW COL: row ROW was last on column COL (shell builtins only)
+# remember ROW COL ---- row ROW was last on column COL (shell builtins only)
 remember() {
     [[ -d "$STATE_DIR" ]] || mkdir -p "$STATE_DIR"
     echo "$2" > "$STATE_DIR/$1"
 }
 
-# recall ROW [FALLBACK]: print the column ROW was last on,
+# recall ROW [FALLBACK] ----- print the column ROW was last on,
 # else FALLBACK (default: the current column)
 recall() {
     local c=""
@@ -58,15 +58,12 @@ recall() {
     fi
 }
 
-# " name1 name2 " for desktops matching a descriptor (bspc fails on no match)
 names_matching() {
     local list
     list=$(bspc query -D -d "$1" --names 2>/dev/null || true)
     echo " ${list//$'\n'/ } "
 }
 
-# first_occupied ROW: set FIRST_COL to ROW's first occupied column,
-# or fail if the row is empty. Reads OCC_LIST (from names_matching).
 first_occupied() {
     local c
     for ((c=1; c<=COLS; c++)); do
@@ -178,7 +175,6 @@ case "${1:-}" in
         render_bar() {
             local occ_list urg_list out c d click end_click
             get_coords
-            # Free piggyback: this loop already wakes on every focus change
             remember "$ROW" "$COL"
             occ_list=$(names_matching .occupied)
             urg_list=$(names_matching .urgent)
@@ -210,7 +206,6 @@ case "${1:-}" in
         ;;
 
     overview)
-        # Grid overview of rows in use, plus the row you're on
         get_coords
         OCC_LIST=$(names_matching .occupied)
 
