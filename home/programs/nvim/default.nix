@@ -129,7 +129,7 @@
           p.json
           p.lua
           p.make
-          # p.markdown
+          p.markdown
           p.nix
           p.python
           p.rust

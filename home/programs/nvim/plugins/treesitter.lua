@@ -22,7 +22,15 @@ vim.api.nvim_create_autocmd("FileType", {
   callback = function(args)
     local ft = vim.bo[args.buf].filetype
     local lang = vim.treesitter.language.get_lang(ft) or ft
-    if disabled[lang] then return end
+    if disabled[lang] then
+      -- the runtime ftplugin may start TS anyway; undo it after it runs
+      vim.schedule(function()
+        if not vim.api.nvim_buf_is_valid(args.buf) then return end
+        vim.treesitter.stop(args.buf)
+        if vim.bo[args.buf].syntax == "" then vim.bo[args.buf].syntax = ft end
+      end)
+      return
+    end
     -- pcall: silently skip filetypes with no installed parser
     pcall(vim.treesitter.start, args.buf, lang)
   end,
