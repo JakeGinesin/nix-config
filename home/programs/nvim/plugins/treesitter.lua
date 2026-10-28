@@ -17,20 +17,22 @@
 
 local disabled = { markdown = true, markdown_inline = true }
 
+-- Newer Neovim's runtime markdown ftplugin calls vim.treesitter.start() itself.
+-- Wrap it so disabled languages never start at all, instead of starting and
+-- getting stopped afterward (which costs a full parse on big files).
+local ts_start = vim.treesitter.start
+vim.treesitter.start = function(bufnr, lang)
+  if bufnr == nil or bufnr == 0 then bufnr = vim.api.nvim_get_current_buf() end
+  lang = lang or vim.treesitter.language.get_lang(vim.bo[bufnr].filetype)
+  if lang and disabled[lang] then return end
+  return ts_start(bufnr, lang)
+end
+
 vim.api.nvim_create_autocmd("FileType", {
   group = vim.api.nvim_create_augroup("ts_highlight", { clear = true }),
   callback = function(args)
     local ft = vim.bo[args.buf].filetype
     local lang = vim.treesitter.language.get_lang(ft) or ft
-    if disabled[lang] then
-      -- the runtime ftplugin may start TS anyway; undo it after it runs
-      vim.schedule(function()
-        if not vim.api.nvim_buf_is_valid(args.buf) then return end
-        vim.treesitter.stop(args.buf)
-        if vim.bo[args.buf].syntax == "" then vim.bo[args.buf].syntax = ft end
-      end)
-      return
-    end
     -- pcall: silently skip filetypes with no installed parser
     pcall(vim.treesitter.start, args.buf, lang)
   end,
