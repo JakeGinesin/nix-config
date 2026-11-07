@@ -212,6 +212,10 @@ in {
                     name = "gemini";
                     url = "https://gemini.google.com";
                   }
+                  {
+                    name = "ollama";
+                    url = "${osConfig.secrets.eval.urls.local}";
+                  }
                 ];
               }
               {

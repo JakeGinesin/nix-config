@@ -135,6 +135,7 @@ in {
       # claude-code # FUCK YOU ANTHROPIC
       whatsapp-electron
       # texlive.combined.scheme-full
+      nvd
 
       # security
       aflplusplus
