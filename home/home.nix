@@ -136,6 +136,7 @@ in {
       whatsapp-electron
       # texlive.combined.scheme-full
       nvd
+      openssl
 
       # security
       aflplusplus

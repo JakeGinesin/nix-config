@@ -24,7 +24,7 @@
     # pin only signal versions jake likes. recall, you must back up .config/Signal when changing this
     # this version includes: triple ratchet iirc
     # nix flake metadata --json github:NixOS/nixpkgs/nixos-unstable | jq -r .locked.rev
-    nixpkgs-signal.url = "github:NixOS/nixpkgs/56c02bc00adcf003215cc4bd996d6efaf4cff188";
+    nixpkgs-signal.url = "github:NixOS/nixpkgs/04906337b6d53e8bb0eaf0470ae9f070a4d4eb55";
 
     verus-flake.url = "github:JakeGinesin/verus-flake";
   };
