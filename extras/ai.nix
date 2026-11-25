@@ -1,13 +1,17 @@
-# local AI server: llama-swap (llama.cpp + stable-diffusion.cpp on Vulkan), Ollama,
-# Open WebUI, SearXNG web search, and sandboxed code/terminal execution (docker).
+# local AI server: Ollama (Vulkan) for chat models, managed entirely from Open WebUI; SearXNG
+# web search; stable-diffusion.cpp behind llama-swap for image generation; sandboxed code/terminal
+# execution (docker); and a sandboxed coding-agent container.
 #
 # everything that listens beyond loopback is only opened on the tailscale interface.
 #
-#   http://<tailscaleAddress>/        open webui (first account created becomes admin)
-#   http://<tailscaleAddress>:9292    llama-swap: OpenAI-compatible API + /ui (logs, loaded models)
-#   http://<tailscaleAddress>:11434   ollama API
+#   http://<tailscaleAddress>/        open webui (first account created becomes admin).
+#                                     models: admin panel -> settings -> models -> pull
+#                                     (ollama.com names like `gpt-oss:120b`, or `hf.co/<user>/<repo>:<quant>`)
+#   http://<tailscaleAddress>:11434   ollama API (OpenAI- and Anthropic-compatible too)
+#   http://<tailscaleAddress>:9292    llama-swap (image model) + /ui
 #   http://<tailscaleAddress>:8890    searxng
 #   http://<tailscaleAddress>:8188    comfyui (if enabled)
+#   ssh -p 2222 coder@<tailscaleAddress>   coding sandbox (if enabled)
 #
 # secrets (webui session key, searx key, jupyter token, open-terminal key) are generated on
 # first boot into /var/lib/ai-secrets, so nothing has to be agenix'd by hand.
@@ -21,8 +25,7 @@
   inherit (lib) mkOption mkEnableOption mkIf types;
 
   secretsDir = "/var/lib/ai-secrets";
-  modelsDir = "/var/lib/ai-models"; # all weights, fetched in the background by ai-model-fetch
-  llmDir = id: "${modelsDir}/llm/${id}";
+  modelsDir = "/var/lib/ai-models"; # image weights (fetched by ai-model-fetch) and comfyui
 
   ports = {
     webui = 8080; # loopback, fronted by nginx on :80
@@ -34,63 +37,13 @@
     comfyui = 8188; # nginx on the tailnet
     comfyuiLocal = 18188; # loopback
   };
+  ollamaUrl = "http://127.0.0.1:${toString ports.ollama}";
+  ctx = toString cfg.ollama.contextLength;
 
   # vulkan (RADV) is the most stable and usually the fastest backend on gfx1151
-  llamaCpp = pkgs.llama-cpp-vulkan;
   sdCpp = pkgs.stable-diffusion-cpp-vulkan; # ships sd-server (its meta.mainProgram is stale)
 
-  hfCli = "${pkgs.python3Packages.huggingface-hub}/bin/hf";
-
-  # "repo[:quant]" -> { repo, quant }; no tag means Q4_K_M, like llama.cpp's -hf
-  hfParts = s: let
-    parts = lib.splitString ":" s;
-  in {
-    repo = builtins.head parts;
-    quant =
-      if builtins.length parts > 1
-      then lib.last parts
-      else "Q4_K_M";
-  };
-
-  # starts llama-server on whatever ai-model-fetch put in a model's directory: the first GGUF
-  # (= first shard of split models) plus a vision projector if one was downloaded. fails fast
-  # with a pointer to the fetcher instead of hanging a chat on a download.
-  llamaRun = pkgs.writeShellScript "llama-run" ''
-    dir=$1
-    shift
-    if [ ! -e "$dir/.complete" ]; then
-      echo "$dir is not downloaded yet: run 'ai-models' or 'journalctl -u ai-model-fetch -f'" >&2
-      exit 1
-    fi
-    files() { ${pkgs.findutils}/bin/find "$dir" -path "$dir/.cache" -prune -o -name '*.gguf' "$@" -print | ${pkgs.coreutils}/bin/sort; }
-    model=$(files ! -name 'mmproj*' | ${pkgs.coreutils}/bin/head -n1)
-    mmproj=$(files -name 'mmproj*' | ${pkgs.coreutils}/bin/head -n1)
-    exec ${llamaCpp}/bin/llama-server --model "$model" ''${mmproj:+--mmproj "$mmproj"} "$@"
-  '';
-
   # llama-swap substitutes ${PORT} itself, so it is kept literal here
-  llmCmd = id: m:
-    (
-      if m.hf != null
-      then "${llamaRun} ${llmDir id}"
-      else "${llamaCpp}/bin/llama-server --model ${lib.escapeShellArg m.file}"
-    )
-    + " --host 127.0.0.1 --port \${PORT} "
-    + lib.escapeShellArgs ([
-        "--ctx-size"
-        (toString m.ctx)
-        "--n-gpu-layers"
-        "999"
-        "--flash-attn"
-        "on"
-        "--load-mode" # read weights into memory instead of mmap; mmap is far slower on strix halo
-        "none"
-        "--jinja"
-        "--parallel"
-        "1"
-      ]
-      ++ m.args);
-
   imageCmd = id: m:
     "${sdCpp}/bin/sd-server --listen-ip 127.0.0.1 --listen-port \${PORT} "
     + lib.escapeShellArgs (
@@ -98,49 +51,14 @@
       ++ m.args
     );
 
-  llmModels =
-    lib.mapAttrs (id: m: {
-      inherit (m) name ttl;
-      cmd = llmCmd id m;
-    })
-    cfg.llm.models;
-
-  # hugging face llms to fetch: the default and coding models go first, then image weights, then the rest
-  llmFetchIds = lib.attrNames (lib.filterAttrs (_: m: m.hf != null) cfg.llm.models);
-  llmFetchFirst = lib.filter (id: builtins.elem id llmFetchIds) (lib.unique [cfg.llm.default cfg.coding.model]);
-  llmFetchOrder = llmFetchFirst ++ lib.subtractLists llmFetchFirst llmFetchIds;
-
-  # `ai-models`: what's downloaded, what's in flight, and how big it is so far
-  aiModelsStatus = pkgs.writeShellScriptBin "ai-models" ''
-    export PATH=${lib.makeBinPath [pkgs.coreutils pkgs.systemd]}
-    row() { printf '%-26s %-12s %s\n' "$1" "$2" "$(du -sh "$3" 2>/dev/null | cut -f1)"; }
-    printf '%-26s %-12s %s\n' MODEL STATE SIZE
-    ${lib.concatMapStrings (id: ''
-        d=${llmDir id}
-        if [ -e "$d/.complete" ]; then s=ready; elif [ -d "$d" ]; then s=downloading; else s=queued; fi
-        row ${lib.escapeShellArg id} "$s" "$d"
-      '')
-      llmFetchOrder}
-    ${lib.optionalString cfg.images.enable (lib.concatStrings (lib.mapAttrsToList (id: m: ''
-        d=${modelsDir}/${id}
-        s=ready
-        for f in ${lib.escapeShellArgs (map baseNameOf (lib.attrValues m.files))}; do
-          [ -s "$d/$f" ] || s=downloading
-        done
-        [ -d "$d" ] || s=queued
-        row ${lib.escapeShellArg id} "$s" "$d"
-      '')
-      cfg.images.models))}
-    echo
-    echo "fetcher: $(systemctl is-active ai-model-fetch)   (journalctl -u ai-model-fetch -f)"
-  '';
-
   imageModels = lib.optionalAttrs cfg.images.enable (lib.mapAttrs (id: m: {
       inherit (m) name ttl;
       cmd = imageCmd id m;
       checkEndpoint = "/v1/models";
+      unlisted = true; # keeps it out of open webui's chat model list
     })
     cfg.images.models);
+  imagesOn = imageModels != {};
 
   # every file the image models need, fetched at runtime (no hashes to maintain for multi-GB blobs)
   imageFiles = lib.concatLists (lib.mapAttrsToList (id: m:
@@ -161,54 +79,12 @@
       key = "@TERMINAL_KEY@";
       auth_type = "bearer";
       config.access_grants = []; # empty = admins only
-
     }
   ];
 
   secretConsumers =
     ["open-webui.service" "searx-init.service" "searx.service"]
     ++ lib.optionals cfg.sandbox.enable ["docker-open-terminal.service" "docker-jupyter.service"];
-
-  llmModule = types.submodule ({name, ...}: {
-    options = {
-      hf = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        example = "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL";
-        description = ''
-          any Hugging Face GGUF repo, as repo[:quant] (quant defaults to Q4_K_M). downloaded in the
-          background by ai-model-fetch into /var/lib/ai-models/llm/<id>, including split files and
-          an F16 vision projector (mmproj) when the repo has one.
-        '';
-      };
-      file = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        example = "/var/lib/ai-models/gguf/my-finetune-Q8_0.gguf";
-        description = "a local GGUF instead of `hf` (first shard for split models)";
-      };
-      name = mkOption {
-        type = types.str;
-        default = name;
-        description = "display name in llama-swap / open webui";
-      };
-      ctx = mkOption {
-        type = types.int;
-        default = 0;
-        description = "context size; 0 = the model's trained maximum";
-      };
-      ttl = mkOption {
-        type = types.int;
-        default = 1800;
-        description = "seconds of inactivity before llama-swap unloads the model";
-      };
-      args = mkOption {
-        type = types.listOf types.str;
-        default = [];
-        description = "extra llama-server arguments (sampling defaults etc.)";
-      };
-    };
-  });
 
   imageModule = types.submodule ({name, ...}: {
     options = {
@@ -254,29 +130,26 @@ in {
       type = types.nullOr types.str;
       default = null;
       example = "/run/agenix/hf-token";
-      description = ''
-        file containing `HF_TOKEN=hf_...`, for gated/private Hugging Face repos (llama.cpp -hf
-        downloads and the image-weight fetcher). public repos need nothing.
-      '';
+      description = "file containing `HF_TOKEN=hf_...`, if an image model's weights are gated";
     };
 
-    llm = {
+    ollama = {
       models = mkOption {
-        type = types.attrsOf llmModule;
-        default = {};
-        description = "llama.cpp models served by llama-swap (the id is the OpenAI model name)";
+        type = types.listOf types.str;
+        default = [];
+        description = ''
+          models to always have pulled. optional: normally you pull and delete models from
+          open webui's admin panel, and those are kept (nothing here removes them).
+        '';
       };
-      default = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        description = "default model id in open webui";
+      contextLength = mkOption {
+        type = types.int;
+        default = 131072;
+        description = ''
+          default context window for every model. ollama silently truncates prompts beyond it, and
+          coding agents want at least ~64k. per-model overrides live in open webui's model settings.
+        '';
       };
-    };
-
-    ollama.models = mkOption {
-      type = types.listOf types.str;
-      default = [];
-      description = "ollama models pulled at boot";
     };
 
     embeddingModel = mkOption {
@@ -319,13 +192,12 @@ in {
     coding = {
       enable = mkEnableOption ''
         a sandboxed coding box: a NixOS container with claude code, opencode, codex and aider,
-        pointed at the local models, reachable with `ssh -p <sshPort> coder@<tailscaleAddress>`
+        pointed at ollama, reachable with `ssh -p <sshPort> coder@<tailscaleAddress>`
       '';
       model = mkOption {
-        type = types.nullOr types.str;
-        default = cfg.llm.default;
-        defaultText = lib.literalExpression "config.ai.llm.default";
-        description = "llama-swap model the agents use by default";
+        type = types.str;
+        default = "qwen3-coder-next";
+        description = "ollama model the agents default to (pulled automatically)";
       };
       sshPort = mkOption {
         type = types.port;
@@ -353,106 +225,65 @@ in {
   };
 
   config = mkIf cfg.enable {
-    assertions =
-      lib.mapAttrsToList (id: m: {
-        assertion = (m.hf == null) != (m.file == null);
-        message = "ai.llm.models.${id}: set exactly one of `hf` or `file`";
-      })
-      cfg.llm.models
-      ++ [
-        {
-          assertion = cfg.coding.enable -> cfg.coding.model != null;
-          message = "ai.coding.model (or ai.llm.default) must be set";
-        }
-      ];
-
     hardware.graphics.enable = true;
 
     environment.systemPackages = [
-      llamaCpp # llama-bench, llama-cli, ...
-      sdCpp
+      config.services.ollama.package # `ollama ps`, `ollama pull ...`
       pkgs.amdgpu_top
       pkgs.nvtopPackages.amd
       pkgs.vulkan-tools
-      pkgs.python3Packages.huggingface-hub # `hf download ...`
-      aiModelsStatus
     ];
 
     ##
-    ## inference
+    ## chat models: ollama. pull/delete from open webui; it loads models on demand and unloads
+    ## idle ones (keep-alive), evicting the least recently used when memory runs short.
     ##
-
-    services.llama-swap = {
-      enable = true;
-      listenAddress = "0.0.0.0"; # firewall only admits the tailnet
-      port = ports.llamaSwap;
-      settings = {
-        # weights are already on disk (ai-model-fetch); this only covers reading ~100GB into memory
-        healthCheckTimeout = 900;
-        startPort = 10001;
-        logLevel = "info";
-        models = llmModels // imageModels;
-        # one llm and one image model may be resident at the same time
-        groups =
-          {
-            llm = {
-              swap = true;
-              exclusive = false;
-              members = lib.attrNames llmModels;
-            };
-          }
-          // lib.optionalAttrs (imageModels != {}) {
-            image = {
-              swap = true;
-              exclusive = false;
-              members = lib.attrNames imageModels;
-            };
-          };
-      };
-    };
-
-    systemd.services.llama-swap = {
-      wants = ["network-online.target"];
-      after = ["network-online.target"];
-      environment.MESA_SHADER_CACHE_DIR = "/var/cache/llama-swap/mesa";
-      serviceConfig = {
-        SupplementaryGroups = ["render" "video"];
-        # llama-server may still fetch a missing vision projector (mmproj) itself
-        EnvironmentFile = lib.mkIf (cfg.huggingfaceTokenFile != null) cfg.huggingfaceTokenFile;
-      };
-    };
 
     services.ollama = {
       enable = true;
       package = pkgs.ollama-vulkan;
-      host = "0.0.0.0";
+      host = "0.0.0.0"; # firewall only admits the tailnet
       port = ports.ollama;
-      loadModels = lib.unique ([cfg.embeddingModel] ++ cfg.ollama.models);
+      loadModels = lib.unique ([cfg.embeddingModel] ++ cfg.ollama.models ++ lib.optional cfg.coding.enable cfg.coding.model);
       environmentVariables = {
         OLLAMA_VULKAN = "1";
         OLLAMA_FLASH_ATTENTION = "1";
-        OLLAMA_KV_CACHE_TYPE = "q8_0";
-        OLLAMA_CONTEXT_LENGTH = "32768";
+        OLLAMA_KV_CACHE_TYPE = "q8_0"; # halves context memory
+        OLLAMA_CONTEXT_LENGTH = ctx;
         OLLAMA_KEEP_ALIVE = "30m";
-        OLLAMA_MAX_LOADED_MODELS = "2";
-        OLLAMA_NUM_PARALLEL = "1";
+        OLLAMA_MAX_LOADED_MODELS = "3";
+        OLLAMA_NUM_PARALLEL = "1"; # every parallel slot costs another full context of memory
       };
     };
 
-    # downloads every configured model up front, in the background (neither boot nor switch waits
-    # on it), so a chat never sits on a multi-GB download. resumable; completed models are skipped;
-    # failures retry. a model whose repo/quant changes is re-fetched. `ai-models` shows progress.
-    systemd.services.ai-model-fetch = mkIf (llmFetchOrder != [] || (cfg.images.enable && imageFiles != [])) {
-      description = "Download AI model weights from Hugging Face";
+    ##
+    ## image generation: sd-server behind llama-swap (unloads when idle). weights download in the
+    ## background after a switch; neither boot nor switch waits on it.
+    ##
+
+    services.llama-swap = mkIf imagesOn {
+      enable = true;
+      listenAddress = "0.0.0.0"; # firewall only admits the tailnet
+      port = ports.llamaSwap;
+      settings = {
+        healthCheckTimeout = 600;
+        startPort = 10001;
+        logLevel = "info";
+        models = imageModels;
+      };
+    };
+
+    systemd.services.llama-swap = mkIf imagesOn {
+      environment.MESA_SHADER_CACHE_DIR = "/var/cache/llama-swap/mesa";
+      serviceConfig.SupplementaryGroups = ["render" "video"];
+    };
+
+    systemd.services.ai-model-fetch = mkIf (imagesOn && imageFiles != []) {
+      description = "Download image-generation model weights";
       wantedBy = ["multi-user.target"];
       wants = ["network-online.target"];
       after = ["network-online.target"];
-      path = [pkgs.curl pkgs.coreutils pkgs.findutils];
-      environment = {
-        HF_HOME = "${modelsDir}/.hf-home";
-        HF_HUB_DISABLE_TELEMETRY = "1";
-        HF_HUB_DISABLE_PROGRESS_BARS = "1"; # unreadable in the journal; `ai-models` shows sizes
-      };
+      path = [pkgs.curl pkgs.coreutils];
       serviceConfig = {
         Type = "simple";
         Restart = "on-failure";
@@ -463,9 +294,7 @@ in {
         failed=0
         auth=()
         if [ -n "''${HF_TOKEN:-}" ]; then auth=(-H "Authorization: Bearer $HF_TOKEN"); fi
-
-        # image weights: single files by url
-        fetch_file() {
+        fetch() {
           dest="$1/$(basename "$2")"
           [ -s "$dest" ] && return 0
           mkdir -p "$1"
@@ -476,49 +305,10 @@ in {
             failed=1
           fi
         }
-
-        # llms: <id> <repo> <quant> -> ${modelsDir}/llm/<id>
-        fetch_repo() {
-          dir=${modelsDir}/llm/$1
-          want="$2:$3"
-          [ "$(cat "$dir/.complete" 2>/dev/null)" = "$want" ] && return 0
-          [ -e "$dir/.complete" ] && rm -rf "$dir" # repo or quant changed
-          mkdir -p "$dir"
-          echo "fetching $want -> $dir"
-          # a plain quant tag must not also pull unsloth's UD- variant of the same name
-          excl=()
-          case "$3" in UD-*) ;; *) excl=(--exclude "*UD-$3*") ;; esac
-          if ${hfCli} download "$2" --include "*$3*" "''${excl[@]}" --local-dir "$dir" >/dev/null &&
-             ${hfCli} download "$2" --include "*mmproj-F16*" --local-dir "$dir" >/dev/null; then
-            if [ -z "$(find "$dir" -path "$dir/.cache" -prune -o -name '*.gguf' -print -quit)" ]; then
-              echo "no GGUF in $2 matches '*$3*'; check the quant tag" >&2
-              failed=1
-              return
-            fi
-            echo "$want" > "$dir/.complete"
-            echo "done: $1"
-          else
-            echo "failed: $1 (will retry)" >&2
-            failed=1
-          fi
-        }
-
-        ${lib.concatMapStrings (id: let
-            p = hfParts cfg.llm.models.${id}.hf;
-          in ''
-            fetch_repo ${lib.escapeShellArgs [id p.repo p.quant]}
+        ${lib.concatMapStrings (f: ''
+            fetch ${lib.escapeShellArg f.dir} ${lib.escapeShellArg f.url}
           '')
-          llmFetchFirst}
-        ${lib.optionalString cfg.images.enable (lib.concatMapStrings (f: ''
-            fetch_file ${lib.escapeShellArg f.dir} ${lib.escapeShellArg f.url}
-          '')
-          imageFiles)}
-        ${lib.concatMapStrings (id: let
-            p = hfParts cfg.llm.models.${id}.hf;
-          in ''
-            fetch_repo ${lib.escapeShellArgs [id p.repo p.quant]}
-          '')
-          (lib.subtractLists llmFetchFirst llmFetchOrder)}
+          imageFiles}
         chmod -R a+rX ${modelsDir}
         exit $failed
       '';
@@ -543,15 +333,14 @@ in {
           WEBUI_URL = "http://${cfg.tailscaleAddress}";
           WEBUI_NAME = "${config.networking.hostName}";
 
-          # backends
-          OLLAMA_BASE_URL = "http://127.0.0.1:${toString ports.ollama}";
-          OPENAI_API_BASE_URLS = "http://127.0.0.1:${toString ports.llamaSwap}/v1";
-          OPENAI_API_KEYS = "sk-local";
+          # chat models come from ollama only
+          OLLAMA_BASE_URL = ollamaUrl;
+          ENABLE_OPENAI_API = "False";
 
           # RAG
           RAG_EMBEDDING_ENGINE = "ollama";
           RAG_EMBEDDING_MODEL = cfg.embeddingModel;
-          RAG_OLLAMA_BASE_URL = "http://127.0.0.1:${toString ports.ollama}";
+          RAG_OLLAMA_BASE_URL = ollamaUrl;
 
           # web search
           ENABLE_WEB_SEARCH = "True";
@@ -560,10 +349,7 @@ in {
           WEB_SEARCH_RESULT_COUNT = "6";
           WEB_SEARCH_CONCURRENT_REQUESTS = "6";
         }
-        // lib.optionalAttrs (cfg.llm.default != null) {
-          DEFAULT_MODELS = cfg.llm.default;
-        }
-        // lib.optionalAttrs (cfg.images.enable && cfg.images.default != null) {
+        // lib.optionalAttrs (imagesOn && cfg.images.default != null) {
           ENABLE_IMAGE_GENERATION = "True";
           IMAGE_GENERATION_ENGINE = "openai";
           IMAGES_OPENAI_API_BASE_URL = "http://127.0.0.1:${toString ports.llamaSwap}/v1";
@@ -741,8 +527,8 @@ in {
     ##
     ## coding sandbox. a full NixOS container: own filesystem (only /nix/store is shared, read-only),
     ## own process tree, memory/cpu caps, and an unprivileged user with no sudo. it shares the host's
-    ## network namespace so it can reach the local model endpoints on loopback; its sshd is only
-    ## reachable over the tailnet. persistent state lives in /var/lib/nixos-containers/coder.
+    ## network namespace so it can reach ollama on loopback; its sshd is only reachable over the
+    ## tailnet. persistent state lives in /var/lib/nixos-containers/coder.
     ##
     ## the user is deliberately NOT uid 1000: the host nix-daemon (whose socket the container uses)
     ## trusts uids by host name, and a trusted nix user is root-equivalent.
@@ -754,56 +540,55 @@ in {
         privateNetwork = false;
         config = {pkgs, ...}: let
           model = cfg.coding.model;
-          llamaSwapUrl = "http://127.0.0.1:${toString ports.llamaSwap}";
 
-          # claude code against the local models (anthropic /v1/messages via llama-swap -> llama-server).
-          # every tier maps to one model so llama-swap never swaps mid-session. plain `claude` still
-          # works with an anthropic account. NB: anthropic doesn't support non-claude backends.
+          # claude code against ollama's anthropic-compatible API. every tier maps to one model so
+          # ollama doesn't juggle several. plain `claude` still works with an anthropic account.
+          # NB: anthropic doesn't support non-claude backends; this is best effort.
           claudeLocal = pkgs.writeShellScriptBin "claude-local" ''
             m="''${CLAUDE_LOCAL_MODEL:-${model}}"
             unset ANTHROPIC_API_KEY
-            export ANTHROPIC_BASE_URL=${llamaSwapUrl}
-            export ANTHROPIC_AUTH_TOKEN=sk-local
+            export ANTHROPIC_BASE_URL=${ollamaUrl}
+            export ANTHROPIC_AUTH_TOKEN=ollama
             export ANTHROPIC_MODEL="$m" ANTHROPIC_DEFAULT_OPUS_MODEL="$m" \
               ANTHROPIC_DEFAULT_SONNET_MODEL="$m" ANTHROPIC_DEFAULT_HAIKU_MODEL="$m" \
               CLAUDE_CODE_SUBAGENT_MODEL="$m"
-            export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 # llama-server rejects beta fields
+            # ollama's window is OLLAMA_CONTEXT_LENGTH; compact before it silently truncates
+            export CLAUDE_CODE_MAX_CONTEXT_TOKENS=${ctx} CLAUDE_CODE_AUTO_COMPACT_WINDOW=${ctx}
+            export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 # third-party backends reject beta fields
             export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-            export API_TIMEOUT_MS=3600000 # model loads / downloads can be slow
+            export API_TIMEOUT_MS=3600000 # loading a big model can take a while
             # the container is the sandbox, so no permission prompts
             exec ${pkgs.claude-code}/bin/claude --dangerously-skip-permissions "$@"
           '';
 
+          # opencode with every model ollama currently has, so whatever you pull in open webui
+          # shows up here. pick one with /models, or start with OPENCODE_MODEL=<name> opencode.
+          opencodeLocal = pkgs.writeShellScriptBin "opencode" ''
+            jq=${pkgs.jq}/bin/jq
+            models=$(${pkgs.curl}/bin/curl -sf ${ollamaUrl}/api/tags |
+              $jq -c '[.models[].name | {key: ., value: {name: ., limit: {context: ${ctx}, output: 32768}}}] | from_entries') ||
+              models='{}'
+            m="''${OPENCODE_MODEL:-${model}}"
+            case "$m" in *:*) ;; *) m="$m:latest" ;; esac
+            OPENCODE_CONFIG_CONTENT=$($jq -nc --argjson models "$models" --arg m "ollama/$m" '{
+              "$schema": "https://opencode.ai/config.json",
+              model: $m,
+              small_model: $m,
+              autoupdate: false,
+              share: "disabled",
+              provider: {ollama: {
+                npm: "@ai-sdk/openai-compatible",
+                name: "Ollama (${config.networking.hostName})",
+                options: {baseURL: "${ollamaUrl}/v1", apiKey: "ollama"},
+                models: $models
+              }}
+            }')
+            export OPENCODE_CONFIG_CONTENT
+            exec ${pkgs.opencode}/bin/opencode "$@"
+          '';
+
           # your git identity, read from home-manager so it lives in one place
           hostGitUser = config.home-manager.users.synchronous.programs.git.settings.user;
-
-          opencodeConfig = {
-            "$schema" = "https://opencode.ai/config.json";
-            model = "thinker/${model}";
-            small_model = "thinker/${model}"; # same model: no swapping
-            autoupdate = false;
-            share = "disabled";
-            provider.thinker = {
-              npm = "@ai-sdk/openai-compatible";
-              name = "${config.networking.hostName} (llama-swap)";
-              options = {
-                baseURL = "${llamaSwapUrl}/v1";
-                apiKey = "sk-local";
-              };
-              models =
-                lib.mapAttrs (_: m: {
-                  inherit (m) name;
-                  limit = {
-                    context =
-                      if m.ctx > 0
-                      then m.ctx
-                      else 131072;
-                    output = 32768;
-                  };
-                })
-                cfg.llm.models;
-            };
-          };
         in {
           system.stateVersion = config.system.stateVersion;
           nixpkgs.config.allowUnfree = true; # claude-code; host nixpkgs.config isn't inherited
@@ -858,9 +643,10 @@ in {
           environment.systemPackages = with pkgs; [
             claude-code
             claudeLocal
-            opencode
-            codex # `codex --oss -m gpt-oss:20b` runs against ollama
+            opencodeLocal
+            codex # `codex --oss -m <ollama model>`
             aider-chat
+            ollama # `ollama list` etc. against the host's server
             gh
             nodejs
             python3
@@ -887,8 +673,6 @@ in {
             yazi
           ];
 
-          environment.etc."opencode/opencode.json".text = builtins.toJSON opencodeConfig;
-
           environment.variables = {
             # claude code: the nix store is read-only, and no phoning home
             DISABLE_AUTOUPDATER = "1";
@@ -896,11 +680,9 @@ in {
             DISABLE_ERROR_REPORTING = "1";
             CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY = "1";
 
-            OPENCODE_CONFIG = "/etc/opencode/opencode.json";
-
-            AIDER_OPENAI_API_BASE = "${llamaSwapUrl}/v1";
-            AIDER_OPENAI_API_KEY = "sk-local";
-            AIDER_MODEL = "openai/${model}";
+            OLLAMA_HOST = ollamaUrl;
+            OLLAMA_API_BASE = ollamaUrl; # aider (litellm)
+            AIDER_MODEL = "ollama_chat/${model}";
             AIDER_ANALYTICS_DISABLE = "true";
             AIDER_CHECK_UPDATE = "false";
           };
@@ -917,22 +699,18 @@ in {
     };
 
     systemd.tmpfiles.rules =
-      [
-        "d ${modelsDir} 0755 root root -"
-        # drop-in spot for local GGUFs (`ai.llm.models.<id>.file`), e.g. `hf download <repo> --include '*Q8_0*' --local-dir ...`
-        "d ${modelsDir}/gguf 0775 root wheel -"
-      ]
+      ["d ${modelsDir} 0755 root root -"]
       # the comfyui bind mount hides the image's model tree, so recreate the usual layout
       ++ lib.optionals cfg.comfyui.enable (map (d: "d ${modelsDir}/comfyui/${d} 0755 root root -") [
-      "checkpoints"
-      "clip_vision"
-      "diffusion_models"
-      "loras"
-      "text_encoders"
-      "unet"
-      "upscale_models"
-      "vae"
-    ]);
+        "checkpoints"
+        "clip_vision"
+        "diffusion_models"
+        "loras"
+        "text_encoders"
+        "unet"
+        "upscale_models"
+        "vae"
+      ]);
 
     ##
     ## secrets, generated once and kept across rebuilds
@@ -980,7 +758,8 @@ in {
     };
 
     networking.firewall.interfaces.${cfg.interface}.allowedTCPPorts =
-      [80 ports.llamaSwap ports.ollama ports.searx]
+      [80 ports.ollama ports.searx]
+      ++ lib.optional imagesOn ports.llamaSwap
       ++ lib.optional cfg.comfyui.enable ports.comfyui
       ++ lib.optional cfg.coding.enable cfg.coding.sshPort;
   };

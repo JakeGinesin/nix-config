@@ -61,40 +61,12 @@
       enable = true;
       tailscaleAddress = "100.74.123.109";
 
-      # served by llama-swap (llama.cpp, vulkan). all weights (~335GB total) download in the background
-      # into /var/lib/ai-models after each switch; `ai-models` shows progress. one llm is resident at a
-      # time; idle ones unload.
-      llm.default = "gpt-oss-120b";
-      llm.models = {
-        # fast generalist, ~50 tok/s. reasoning effort is a per-chat/model param in open webui
-        "gpt-oss-120b" = {
-          hf = "ggml-org/gpt-oss-120b-GGUF:MXFP4"; # 63GB
-          args = ["--temp" "1.0" "--top-p" "1.0" "--top-k" "0"];
-        };
-        "gpt-oss-20b" = {
-          hf = "ggml-org/gpt-oss-20b-GGUF:MXFP4"; # 12GB
-          args = ["--temp" "1.0" "--top-p" "1.0" "--top-k" "0"];
-        };
-        # the strongest thing that fits: 125B MoE, 6B active, ~20 tok/s
-        "qwen3.8-flash-next" = {
-          hf = "unsloth/Qwen3.8-Flash-Next-GGUF:UD-Q3_K_XL"; # 90GB
-          ctx = 65536;
-        };
-        "qwen3.5-122b-a10b" = {
-          hf = "unsloth/Qwen3.5-122B-A10B-GGUF:UD-Q4_K_XL"; # 77GB
-          ctx = 131072;
-        };
-        # agentic coding, 80B MoE, 3B active
-        "qwen3-coder-next" = {
-          hf = "unsloth/Qwen3-Coder-Next-GGUF:UD-Q4_K_XL"; # 50GB
-          ctx = 131072;
-        };
-        # small, quick, and multimodal (accepts images)
-        "qwen3.6-35b-a3b" = {
-          hf = "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL"; # 22GB
-          ctx = 131072;
-        };
-      };
+      # chat models live in ollama and are managed from open webui:
+      #   admin panel -> settings -> models -> "pull a model": an ollama.com name
+      #   (gpt-oss:120b, gpt-oss:20b, qwen3-coder-next, ...) or any GGUF on hugging face as
+      #   hf.co/<user>/<repo>:<quant>. progress shows there; delete from the same page.
+      # ollama loads models on demand and unloads idle ones. the RAG embedding model and the
+      # coding model below are pulled automatically.
 
       # stable-diffusion.cpp behind llama-swap, wired into open webui's image button
       images.default = "z-image-turbo";
@@ -108,20 +80,16 @@
         args = ["--cfg-scale" "1.0" "--steps" "8" "--diffusion-fa" "--seed" "-1" "-W" "1024" "-H" "1024"];
       };
 
-      # more models: any GGUF repo on hugging face works as `hf = "user/repo:quant"`; local files
-      # (fine-tunes, conversions) go in /var/lib/ai-models/gguf and use `file = "/var/lib/ai-models/gguf/x.gguf"`.
-      # for gated repos: huggingfaceTokenFile = <agenix secret containing HF_TOKEN=...>;
-      # ad hoc, without rebuilding: open webui -> admin -> models -> pull `hf.co/user/repo:quant` (via ollama)
-
       # sandboxed coding agents: `ssh -p 2222 coder@100.74.123.109`, then
-      #   claude                                    claude code on your anthropic account
-      #   claude-local                              claude code on the local model below, permission prompts off (unsupported by anthropic, best effort)
-      #   opencode                                  preconfigured with every llama-swap model
-      #   aider / codex --oss                       llama-swap / ollama
-      # no sudo inside; `nix shell nixpkgs#foo` for tools. `claude --dangerously-skip-permissions` is fair game in there.
+      #   opencode       every model ollama has (pull more in open webui); /models to switch
+      #   claude-local   claude code on `model` below (or CLAUDE_LOCAL_MODEL=...), no permission prompts
+      #                  (unsupported by anthropic, best effort)
+      #   claude         claude code on your anthropic account
+      #   aider / codex --oss -m <model>
+      # no sudo inside; `nix shell nixpkgs#foo` for tools.
       coding = {
         enable = true;
-        model = "qwen3-coder-next";
+        model = "qwen3-coder-next"; # ollama.com/library/qwen3-coder-next: 80B MoE, 3B active, 52GB
       };
 
       # node-based image/video workflows (kyuz0's ROCm container, ~20GB image). put weights in
