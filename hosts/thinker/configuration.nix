@@ -61,8 +61,9 @@
       enable = true;
       tailscaleAddress = "100.74.123.109";
 
-      # served by llama-swap (llama.cpp, vulkan); weights download on first use into
-      # /var/cache/llama-swap/huggingface/hub. one llm is resident at a time; idle ones unload.
+      # served by llama-swap (llama.cpp, vulkan). all weights (~335GB total) download in the background
+      # into /var/lib/ai-models after each switch; `ai-models` shows progress. one llm is resident at a
+      # time; idle ones unload.
       llm.default = "gpt-oss-120b";
       llm.models = {
         # fast generalist, ~50 tok/s. reasoning effort is a per-chat/model param in open webui
@@ -114,7 +115,7 @@
 
       # sandboxed coding agents: `ssh -p 2222 coder@100.74.123.109`, then
       #   claude                                    claude code on your anthropic account
-      #   claude-local                              claude code on the local model below (unsupported by anthropic, best effort)
+      #   claude-local                              claude code on the local model below, permission prompts off (unsupported by anthropic, best effort)
       #   opencode                                  preconfigured with every llama-swap model
       #   aider / codex --oss                       llama-swap / ollama
       # no sudo inside; `nix shell nixpkgs#foo` for tools. `claude --dangerously-skip-permissions` is fair game in there.

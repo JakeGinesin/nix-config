@@ -21,7 +21,8 @@
   inherit (lib) mkOption mkEnableOption mkIf types;
 
   secretsDir = "/var/lib/ai-secrets";
-  modelsDir = "/var/lib/ai-models"; # sd.cpp / comfyui weights (llama.cpp -hf downloads live in llama-swap's state dir)
+  modelsDir = "/var/lib/ai-models"; # all weights, fetched in the background by ai-model-fetch
+  llmDir = id: "${modelsDir}/llm/${id}";
 
   ports = {
     webui = 8080; # loopback, fronted by nginx on :80
@@ -38,15 +39,44 @@
   llamaCpp = pkgs.llama-cpp-vulkan;
   sdCpp = pkgs.stable-diffusion-cpp-vulkan; # ships sd-server (its meta.mainProgram is stale)
 
+  hfCli = "${pkgs.python3Packages.huggingface-hub}/bin/hf";
+
+  # "repo[:quant]" -> { repo, quant }; no tag means Q4_K_M, like llama.cpp's -hf
+  hfParts = s: let
+    parts = lib.splitString ":" s;
+  in {
+    repo = builtins.head parts;
+    quant =
+      if builtins.length parts > 1
+      then lib.last parts
+      else "Q4_K_M";
+  };
+
+  # starts llama-server on whatever ai-model-fetch put in a model's directory: the first GGUF
+  # (= first shard of split models) plus a vision projector if one was downloaded. fails fast
+  # with a pointer to the fetcher instead of hanging a chat on a download.
+  llamaRun = pkgs.writeShellScript "llama-run" ''
+    dir=$1
+    shift
+    if [ ! -e "$dir/.complete" ]; then
+      echo "$dir is not downloaded yet: run 'ai-models' or 'journalctl -u ai-model-fetch -f'" >&2
+      exit 1
+    fi
+    files() { ${pkgs.findutils}/bin/find "$dir" -path "$dir/.cache" -prune -o -name '*.gguf' "$@" -print | ${pkgs.coreutils}/bin/sort; }
+    model=$(files ! -name 'mmproj*' | ${pkgs.coreutils}/bin/head -n1)
+    mmproj=$(files -name 'mmproj*' | ${pkgs.coreutils}/bin/head -n1)
+    exec ${llamaCpp}/bin/llama-server --model "$model" ''${mmproj:+--mmproj "$mmproj"} "$@"
+  '';
+
   # llama-swap substitutes ${PORT} itself, so it is kept literal here
-  llmCmd = m:
-    "${llamaCpp}/bin/llama-server --host 127.0.0.1 --port \${PORT} "
-    + lib.escapeShellArgs ((
-        if m.hf != null
-        then ["-hf" m.hf]
-        else ["--model" m.file]
-      )
-      ++ [
+  llmCmd = id: m:
+    (
+      if m.hf != null
+      then "${llamaRun} ${llmDir id}"
+      else "${llamaCpp}/bin/llama-server --model ${lib.escapeShellArg m.file}"
+    )
+    + " --host 127.0.0.1 --port \${PORT} "
+    + lib.escapeShellArgs ([
         "--ctx-size"
         (toString m.ctx)
         "--n-gpu-layers"
@@ -69,11 +99,41 @@
     );
 
   llmModels =
-    lib.mapAttrs (_: m: {
+    lib.mapAttrs (id: m: {
       inherit (m) name ttl;
-      cmd = llmCmd m;
+      cmd = llmCmd id m;
     })
     cfg.llm.models;
+
+  # hugging face llms to fetch: the default and coding models go first, then image weights, then the rest
+  llmFetchIds = lib.attrNames (lib.filterAttrs (_: m: m.hf != null) cfg.llm.models);
+  llmFetchFirst = lib.filter (id: builtins.elem id llmFetchIds) (lib.unique [cfg.llm.default cfg.coding.model]);
+  llmFetchOrder = llmFetchFirst ++ lib.subtractLists llmFetchFirst llmFetchIds;
+
+  # `ai-models`: what's downloaded, what's in flight, and how big it is so far
+  aiModelsStatus = pkgs.writeShellScriptBin "ai-models" ''
+    export PATH=${lib.makeBinPath [pkgs.coreutils pkgs.systemd]}
+    row() { printf '%-26s %-12s %s\n' "$1" "$2" "$(du -sh "$3" 2>/dev/null | cut -f1)"; }
+    printf '%-26s %-12s %s\n' MODEL STATE SIZE
+    ${lib.concatMapStrings (id: ''
+        d=${llmDir id}
+        if [ -e "$d/.complete" ]; then s=ready; elif [ -d "$d" ]; then s=downloading; else s=queued; fi
+        row ${lib.escapeShellArg id} "$s" "$d"
+      '')
+      llmFetchOrder}
+    ${lib.optionalString cfg.images.enable (lib.concatStrings (lib.mapAttrsToList (id: m: ''
+        d=${modelsDir}/${id}
+        s=ready
+        for f in ${lib.escapeShellArgs (map baseNameOf (lib.attrValues m.files))}; do
+          [ -s "$d/$f" ] || s=downloading
+        done
+        [ -d "$d" ] || s=queued
+        row ${lib.escapeShellArg id} "$s" "$d"
+      '')
+      cfg.images.models))}
+    echo
+    echo "fetcher: $(systemctl is-active ai-model-fetch)   (journalctl -u ai-model-fetch -f)"
+  '';
 
   imageModels = lib.optionalAttrs cfg.images.enable (lib.mapAttrs (id: m: {
       inherit (m) name ttl;
@@ -116,8 +176,9 @@
         default = null;
         example = "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL";
         description = ''
-          any Hugging Face GGUF repo, as repo[:quant] for `llama-server -hf`. downloaded on first
-          use; split files and the vision projector (mmproj) are fetched automatically.
+          any Hugging Face GGUF repo, as repo[:quant] (quant defaults to Q4_K_M). downloaded in the
+          background by ai-model-fetch into /var/lib/ai-models/llm/<id>, including split files and
+          an F16 vision projector (mmproj) when the repo has one.
         '';
       };
       file = mkOption {
@@ -314,6 +375,7 @@ in {
       pkgs.nvtopPackages.amd
       pkgs.vulkan-tools
       pkgs.python3Packages.huggingface-hub # `hf download ...`
+      aiModelsStatus
     ];
 
     ##
@@ -325,8 +387,8 @@ in {
       listenAddress = "0.0.0.0"; # firewall only admits the tailnet
       port = ports.llamaSwap;
       settings = {
-        # first use of a model downloads it, which can take a long time
-        healthCheckTimeout = 3600;
+        # weights are already on disk (ai-model-fetch); this only covers reading ~100GB into memory
+        healthCheckTimeout = 900;
         startPort = 10001;
         logLevel = "info";
         models = llmModels // imageModels;
@@ -352,10 +414,10 @@ in {
     systemd.services.llama-swap = {
       wants = ["network-online.target"];
       after = ["network-online.target"];
-      # the module already points LLAMA_CACHE (-hf downloads) at /var/cache/llama-swap/huggingface/hub
       environment.MESA_SHADER_CACHE_DIR = "/var/cache/llama-swap/mesa";
       serviceConfig = {
         SupplementaryGroups = ["render" "video"];
+        # llama-server may still fetch a missing vision projector (mmproj) itself
         EnvironmentFile = lib.mkIf (cfg.huggingfaceTokenFile != null) cfg.huggingfaceTokenFile;
       };
     };
@@ -377,24 +439,33 @@ in {
       };
     };
 
-    # weights for sd-server; runs in the background so neither boot nor switch waits on it
-    systemd.services.ai-model-fetch = mkIf (cfg.images.enable && imageFiles != []) {
-      description = "Download image-generation model weights";
+    # downloads every configured model up front, in the background (neither boot nor switch waits
+    # on it), so a chat never sits on a multi-GB download. resumable; completed models are skipped;
+    # failures retry. a model whose repo/quant changes is re-fetched. `ai-models` shows progress.
+    systemd.services.ai-model-fetch = mkIf (llmFetchOrder != [] || (cfg.images.enable && imageFiles != [])) {
+      description = "Download AI model weights from Hugging Face";
       wantedBy = ["multi-user.target"];
       wants = ["network-online.target"];
       after = ["network-online.target"];
-      path = [pkgs.curl pkgs.coreutils];
+      path = [pkgs.curl pkgs.coreutils pkgs.findutils];
+      environment = {
+        HF_HOME = "${modelsDir}/.hf-home";
+        HF_HUB_DISABLE_TELEMETRY = "1";
+        HF_HUB_DISABLE_PROGRESS_BARS = "1"; # unreadable in the journal; `ai-models` shows sizes
+      };
       serviceConfig = {
         Type = "simple";
         Restart = "on-failure";
-        RestartSec = "5min";
+        RestartSec = "1min";
         EnvironmentFile = lib.mkIf (cfg.huggingfaceTokenFile != null) cfg.huggingfaceTokenFile;
       };
       script = ''
         failed=0
         auth=()
         if [ -n "''${HF_TOKEN:-}" ]; then auth=(-H "Authorization: Bearer $HF_TOKEN"); fi
-        fetch() {
+
+        # image weights: single files by url
+        fetch_file() {
           dest="$1/$(basename "$2")"
           [ -s "$dest" ] && return 0
           mkdir -p "$1"
@@ -405,10 +476,49 @@ in {
             failed=1
           fi
         }
-        ${lib.concatMapStrings (f: ''
-            fetch ${lib.escapeShellArg f.dir} ${lib.escapeShellArg f.url}
+
+        # llms: <id> <repo> <quant> -> ${modelsDir}/llm/<id>
+        fetch_repo() {
+          dir=${modelsDir}/llm/$1
+          want="$2:$3"
+          [ "$(cat "$dir/.complete" 2>/dev/null)" = "$want" ] && return 0
+          [ -e "$dir/.complete" ] && rm -rf "$dir" # repo or quant changed
+          mkdir -p "$dir"
+          echo "fetching $want -> $dir"
+          # a plain quant tag must not also pull unsloth's UD- variant of the same name
+          excl=()
+          case "$3" in UD-*) ;; *) excl=(--exclude "*UD-$3*") ;; esac
+          if ${hfCli} download "$2" --include "*$3*" "''${excl[@]}" --local-dir "$dir" >/dev/null &&
+             ${hfCli} download "$2" --include "*mmproj-F16*" --local-dir "$dir" >/dev/null; then
+            if [ -z "$(find "$dir" -path "$dir/.cache" -prune -o -name '*.gguf' -print -quit)" ]; then
+              echo "no GGUF in $2 matches '*$3*'; check the quant tag" >&2
+              failed=1
+              return
+            fi
+            echo "$want" > "$dir/.complete"
+            echo "done: $1"
+          else
+            echo "failed: $1 (will retry)" >&2
+            failed=1
+          fi
+        }
+
+        ${lib.concatMapStrings (id: let
+            p = hfParts cfg.llm.models.${id}.hf;
+          in ''
+            fetch_repo ${lib.escapeShellArgs [id p.repo p.quant]}
           '')
-          imageFiles}
+          llmFetchFirst}
+        ${lib.optionalString cfg.images.enable (lib.concatMapStrings (f: ''
+            fetch_file ${lib.escapeShellArg f.dir} ${lib.escapeShellArg f.url}
+          '')
+          imageFiles)}
+        ${lib.concatMapStrings (id: let
+            p = hfParts cfg.llm.models.${id}.hf;
+          in ''
+            fetch_repo ${lib.escapeShellArgs [id p.repo p.quant]}
+          '')
+          (lib.subtractLists llmFetchFirst llmFetchOrder)}
         chmod -R a+rX ${modelsDir}
         exit $failed
       '';
@@ -660,8 +770,12 @@ in {
             export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 # llama-server rejects beta fields
             export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
             export API_TIMEOUT_MS=3600000 # model loads / downloads can be slow
-            exec ${pkgs.claude-code}/bin/claude "$@"
+            # the container is the sandbox, so no permission prompts
+            exec ${pkgs.claude-code}/bin/claude --dangerously-skip-permissions "$@"
           '';
+
+          # your git identity, read from home-manager so it lives in one place
+          hostGitUser = config.home-manager.users.synchronous.programs.git.settings.user;
 
           opencodeConfig = {
             "$schema" = "https://opencode.ai/config.json";
@@ -708,12 +822,38 @@ in {
           users.users.coder = {
             isNormalUser = true;
             uid = 2000;
+            shell = pkgs.zsh;
             openssh.authorizedKeys.keys = cfg.coding.authorizedKeys;
+          };
+
+          # the host's zsh (home/programs/zsh): same zshrc, p10k prompt and plugins, rebuilt from
+          # nixos options since there's no home-manager in here. the agenix'd remote aliases are
+          # deliberately left out of the sandbox.
+          programs.zsh = {
+            enable = true;
+            ohMyZsh = {
+              enable = true;
+              plugins = ["git" "history-substring-search" "colored-man-pages"];
+            };
+            autosuggestions.enable = true;
+            syntaxHighlighting.enable = true;
+            interactiveShellInit = lib.mkAfter (builtins.readFile ../home/programs/zsh/zshrc);
+            promptInit = ''
+              source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
+              source ${../home/programs/zsh/p10k}
+            '';
+          };
+          programs.direnv.enable = true;
+          # an empty ~/.zshrc keeps zsh's new-user wizard away; everything lives in /etc/zshrc
+          systemd.tmpfiles.rules = ["f /home/coder/.zshrc 0644 coder users -"];
+
+          programs.git = {
+            enable = true;
+            config.user = {inherit (hostGitUser) name email;};
           };
 
           # builds go through the host daemon as an untrusted user: `nix shell nixpkgs#foo` works
           nix.settings.experimental-features = ["nix-command" "flakes"];
-          programs.git.enable = true;
 
           environment.systemPackages = with pkgs; [
             claude-code
@@ -739,6 +879,12 @@ in {
             tree
             file
             unzip
+            # things the zshrc aliases / keybinds expect
+            eza
+            btop
+            fzf
+            nnn
+            yazi
           ];
 
           environment.etc."opencode/opencode.json".text = builtins.toJSON opencodeConfig;
