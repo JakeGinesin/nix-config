@@ -43,7 +43,7 @@
     system = "x86_64-linux";
 
     # hostnames
-    # hosts = ["thonkpad" "rq" "yoga" "server1" "server2" "server3" "store"];
+    # hosts = ["thonkpad" "rq" "yoga" "server1" "server2" "server3" "store" "thinker"];
 
     hosts = builtins.attrNames (
       nixpkgs.lib.filterAttrs (_: t: t == "directory") (builtins.readDir ./hosts)
