@@ -247,6 +247,10 @@ in {
       loadModels = lib.unique ([cfg.embeddingModel] ++ cfg.ollama.models ++ lib.optional cfg.coding.enable cfg.coding.model);
       environmentVariables = {
         OLLAMA_VULKAN = "1";
+        # ollama discards integrated GPUs on vulkan unless told otherwise (only CUDA iGPUs and ROCm
+        # gfx1151 are allowed by default), which silently runs everything on the CPU. the log says
+        # "dropping integrated GPU; to enable, set OLLAMA_IGPU_ENABLE=1"
+        OLLAMA_IGPU_ENABLE = "1";
         OLLAMA_FLASH_ATTENTION = "1";
         OLLAMA_KV_CACHE_TYPE = "q8_0"; # halves context memory
         OLLAMA_CONTEXT_LENGTH = ctx;
